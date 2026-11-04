@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
-};
+// Toda la página depende de quién está logueado: no usamos Cache Components.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
