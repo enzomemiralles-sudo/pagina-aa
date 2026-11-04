@@ -47,6 +47,12 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - Recordatorios (mail o push) y vista de celular más trabajada.
 - Indicadores, cuando haya datos de base.
 
+## Puesta en marcha (estado al 4/11/2026)
+
+- Base: proyecto de Supabase `actividades-academicas`, ref `luwdghvzabcmbpvhvxia` (organización de Enzo). Es la única base con el esquema. "Confirm email" está desactivado en Auth.
+- En Vercel, `NEXT_PUBLIC_SUPABASE_URL` tiene que ser `https://luwdghvzabcmbpvhvxia.supabase.co` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` la clave publicable de ese proyecto. **No usar la integración de Supabase del Marketplace de Vercel**: crea otra base vacía y pisa estas variables. Las `NEXT_PUBLIC_*` se fijan al compilar: después de cambiarlas hay que volver a desplegar.
+- Síntoma de base equivocada: al registrarse aparece "Tu cuenta espera aprobación" sin nombre (la tabla `integrantes` no existe en esa base).
+
 ## Comandos
 
 ```bash
