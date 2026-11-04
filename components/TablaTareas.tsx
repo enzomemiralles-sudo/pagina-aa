@@ -37,7 +37,7 @@ export function TablaTareas({ tareas, personas = [], mostrarContexto = true, mos
           <tr>
             <th style={{ width: 44 }}><span className="oculto">Hecha</span></th>
             <th>Tarea</th>
-            {mostrarContexto && <th>Proyecto o actividad</th>}
+            {mostrarContexto && <th className="ocultar-movil">Proyecto o actividad</th>}
             {mostrarResponsable && <th>Quién</th>}
             <th>Vence</th>
             <th>Estado</th>
@@ -64,7 +64,7 @@ export function TablaTareas({ tareas, personas = [], mostrarContexto = true, mos
                   {t.estado === "trabada" && t.nota_trabada && <div className="chico texto-rojo" style={{ fontWeight: 500 }}>{t.nota_trabada}</div>}
                 </td>
                 {mostrarContexto && (
-                  <td className="suave">
+                  <td className="suave ocultar-movil">
                     {t.proyecto_id ? (
                       <Link href={`/proyectos/${t.proyecto_id}`}>{contextoTarea(t)}</Link>
                     ) : t.actividad_id ? (

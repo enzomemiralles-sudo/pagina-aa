@@ -115,7 +115,8 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
       )}
 
       <div className="columnas">
-        <nav className="col-lateral tarjeta punteo" aria-label="Temas del punteo" style={{ flex: "1 1 230px", gap: 4 }}>
+        <div className="col-lateral" style={{ flex: "1 1 250px" }}>
+        <nav className="tarjeta punteo" aria-label="Temas del punteo" style={{ gap: 4 }}>
           <p className="chico suave" style={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", padding: "0 8px" }}>Punteo</p>
           {temas.length === 0 && <p className="suave chico" style={{ padding: "0 8px" }}>Sin temas todavía.</p>}
           {temas.map((t, i) => (
@@ -128,6 +129,18 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
             </a>
           ))}
         </nav>
+          <section className="tarjeta" aria-labelledby="res-t">
+            <h2 id="res-t">{cerrada ? "Resumen" : "Hasta ahora"}</h2>
+            <ul className="conteos">
+              <li><span className="chip verde">{temas.filter((t) => t.estado === "tratado").length}</span> de {temas.length} temas tratados</li>
+              <li><span className={`chip ${tareas.length ? "verde" : "gris"}`}>{tareas.length}</span> tareas creadas</li>
+              <li><span className={`chip ${resueltas ? "verde" : "gris"}`}>{resueltas}</span> decisiones</li>
+              <li><span className={`chip ${aSeguimiento ? "ambar" : "gris"}`}>{aSeguimiento}</span> van a seguimiento</li>
+            </ul>
+            {!cerrada && <p className="suave chico">Cada tarea le aparece a su responsable apenas se carga. Al cerrar, el acta queda como registro y se puede copiar para WhatsApp.</p>}
+            {!puedeEditar && !cerrada && <p className="suave chico">Solo coordinación y quien toma el acta pueden escribir acá.</p>}
+          </section>
+        </div>
 
         <div className="col-principal">
           {temas.map((t, i) => {
@@ -264,17 +277,6 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
           )}
         </div>
 
-        <aside className="col-lateral tarjeta" aria-labelledby="res-t" style={{ flex: "1 1 220px" }}>
-          <h2 id="res-t">{cerrada ? "Resumen" : "Hasta ahora"}</h2>
-          <ul className="conteos">
-            <li><span className="chip verde">{temas.filter((t) => t.estado === "tratado").length}</span> de {temas.length} temas tratados</li>
-            <li><span className={`chip ${tareas.length ? "verde" : "gris"}`}>{tareas.length}</span> tareas creadas</li>
-            <li><span className={`chip ${resueltas ? "verde" : "gris"}`}>{resueltas}</span> decisiones</li>
-            <li><span className={`chip ${aSeguimiento ? "ambar" : "gris"}`}>{aSeguimiento}</span> van a seguimiento</li>
-          </ul>
-          {!cerrada && <p className="suave chico">Cada tarea le aparece a su responsable apenas se carga. Al cerrar, el acta queda como registro y se puede copiar para WhatsApp.</p>}
-          {!puedeEditar && !cerrada && <p className="suave chico">Solo coordinación y quien toma el acta pueden escribir acá.</p>}
-        </aside>
       </div>
     </>
   );

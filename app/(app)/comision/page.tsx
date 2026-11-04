@@ -123,7 +123,7 @@ async function VistaProyectos({ supabase, filtro }: { supabase: Sb; filtro?: str
   }
 
   const cuenta = {
-    todo: filas.length,
+    todo: filas.filter((x) => x.grupoEstado !== "terminado" || x.alertas.length > 0).length,
     alertas: filas.filter((f) => f.alertas.length).length,
     propuestas: filas.filter((f) => f.grupoEstado === "propuestas").length,
     en_marcha: filas.filter((f) => f.grupoEstado === "en_marcha").length,
@@ -152,7 +152,7 @@ async function VistaProyectos({ supabase, filtro }: { supabase: Sb; filtro?: str
   return (
     <>
       <div className="filtros" role="group" aria-label="Filtrar">
-        {chip("todo", `En curso · ${cuenta.todo - cuenta.terminado}`)}
+        {chip("todo", `En curso · ${cuenta.todo}`)}
         {chip("alertas", `Con alertas · ${cuenta.alertas}`, "rojo")}
         {chip("propuestas", `Propuestas · ${cuenta.propuestas}`)}
         {chip("en_marcha", `En marcha · ${cuenta.en_marcha}`, "azul")}

@@ -226,5 +226,6 @@ details > summary { cursor: pointer; font-weight: 700; color: var(--azul-oscuro)
   .menu nav a { flex: none; min-height: 40px; }
   .menu-yo { display: none; }
   .contenido { padding: 18px 14px 40px; }
+  .ocultar-movil { display: none; }
   h1 { font-size: 24px; }
 }
