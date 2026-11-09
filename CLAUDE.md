@@ -51,6 +51,7 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 
 - Base: proyecto de Supabase `actividades-academicas`, ref `luwdghvzabcmbpvhvxia` (organización de Enzo). Es la única base con el esquema. "Confirm email" está desactivado en Auth.
 - En Vercel, `NEXT_PUBLIC_SUPABASE_URL` tiene que ser `https://luwdghvzabcmbpvhvxia.supabase.co` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` la clave publicable de ese proyecto. **No usar la integración de Supabase del Marketplace de Vercel**: crea otra base vacía y pisa estas variables. Las `NEXT_PUBLIC_*` se fijan al compilar: después de cambiarlas hay que volver a desplegar.
+- La base gratuita de Supabase se pausa si pasa días sin uso (pasó el 9/11 y hubo que restaurarla). `/api/latido` hace una consulta mínima todos los días (cron en `vercel.json`) y además devuelve a qué base apunta la página (`base`).
 - Síntoma de base equivocada: al registrarse aparece "Tu cuenta espera aprobación" sin nombre (la tabla `integrantes` no existe en esa base).
 
 ## Comandos
