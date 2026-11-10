@@ -2,6 +2,8 @@
 -- Página de Actividades Académicas — esquema de la base (Supabase)
 -- Estado consolidado de las migraciones aplicadas el 3/11/2026:
 --   esquema_inicial · helpers_a_esquema_privado · permitir_mantenimiento_sin_sesion
+-- Agregados el 10/11/2026 (ver supabase/migraciones/2026-11-10_*.sql y el resumen al final):
+--   columna_herramientas_mensajes_ddo · revocar_proteger_asistencia
 -- Es referencia: los cambios nuevos se aplican como migraciones nuevas.
 -- =====================================================================
 
@@ -315,3 +317,21 @@ insert into public.lineas (nombre, fundamento, orden) values
   ('Actividades propias', 'Charlas, visitas, jornadas, encuentros, ciclos y otras propuestas formativas.', 4),
   ('Producción académica', 'Materiales, guías, recursos digitales, investigaciones, contenidos y archivo audiovisual.', 5),
   ('Ejercicio profesional', 'Orientación sobre áreas de ejercicio, inserción laboral, vínculos profesionales y oportunidades para estudiantes y graduados.', 6);
+
+-- =====================================================================
+-- 10/11/2026 · Resumen de lo agregado (el SQL completo está en supabase/migraciones/)
+-- =====================================================================
+-- integrantes.rol suma 'columna'. private.es_columna(); private.gestiona_asistencia() = coordinación o Columna.
+-- reuniones: las crea coordinación o Columna (política "crear reunion").
+-- nomina: lista de compañeros que se convocan (con o sin cuenta; integrante_id opcional y único).
+--   Leen miembros; escriben coordinación o Columna.
+-- asistencias (reunion_id, nomina_id): respuesta sin_respuesta|viene|no_viene|no_sabe, motivo, insistir, llegada a_horario|tarde|no_vino.
+--   Ven y editan coordinación, Columna y la persona misma (private.es_mi_nomina). Trigger proteger_asistencia:
+--   la persona solo cambia respuesta y motivo; insistir y llegada son de Columna o coordinación.
+-- public.conteo_asistencia(rid): cuántos respondieron cada cosa, para cualquier miembro (sin nombres).
+-- reunion_logistica (reunion_id): aula, busca_aula_id (nómina), nota. Escriben coordinación o Columna.
+-- documentos: + tipo (inscripcion|planilla|grupo|zoom|encuesta|carpeta|difusion|otro) + nota.
+--   Sin proyecto ni actividad = herramienta general (/herramientas). Editan coordinación o quien lo cargó.
+-- actividades: + guia (protocolo y speech del día) + cupo.
+-- mensajes_modelo: titulo, para (visita|charla|reunion|general), texto con {variables}. Leen y editan miembros; borra coordinación.
+-- ddo: comision, semana (lunes), texto pegado tal cual (único por comisión y semana). Solo coordinación.

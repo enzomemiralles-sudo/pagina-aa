@@ -14,14 +14,15 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 ## Reglas que no se rompen
 
 1. **Los permisos viven en la base**, no en la interfaz. Cada tabla tiene RLS y hay triggers que protegen la aprobación y el seguimiento (`supabase/esquema.sql`). Ocultar un botón no alcanza: si agregás una tabla, agregale RLS y políticas.
-2. **Roles**: `integrante`, `responsable` (administra integrantes) y `seguimiento`. Coordinación = responsable + seguimiento activos. Estados de cuenta: `pendiente` (no ve nada), `activo`, `en_pausa` (entra pero no cuenta en las actualizaciones que faltan), `baja`.
+2. **Roles**: `integrante`, `responsable` (administra integrantes), `seguimiento` y `columna` (releva la asistencia a la reunión; ve la comisión, no administra, no carga actualización semanal). Coordinación = responsable + seguimiento activos. `llevaAsistencia` = coordinación o Columna. Estados de cuenta: `pendiente` (no ve nada), `activo`, `en_pausa` (entra pero no cuenta en las actualizaciones que faltan), `baja`.
 3. **La primera cuenta que se registra queda como responsable activa**; el resto entra pendiente hasta que la responsable la aprueba en `/integrantes`.
 4. **Aprobaciones**: un integrante propone (proyecto o actividad) y queda `propuesta`; solo coordinación aprueba. Dentro de un proyecto aprobado, su responsable o la gente de su mesa pueden crear actividades ya aprobadas. El seguimiento (`pendiente` / `validado` / `devuelto`) solo lo registra coordinación.
 5. **Las actualizaciones semanales** solo las ven su autor y coordinación.
 6. **Datos personales**: no se guardan DNI ni evaluaciones de personas. Las evaluaciones van en un documento privado entre responsable y seguimiento, fuera de la página.
 7. **Código de colores** (solo indica estado, siempre con texto): rojo = problema (trabado, vencido, sin movimiento) · ámbar = atención (vence hoy, esperando seguimiento, falta cerrar) · azul = en marcha · verde = listo · gris = sin empezar. Azul oscuro `#1b2a4a` = menú y botones principales. Las etiquetas están en `lib/etiquetas.ts`.
 8. Interfaz en español rioplatense, con voseo. Fechas en hora de Buenos Aires (`lib/fechas.ts`).
-9. WhatsApp sigue siendo el canal: la página genera textos para copiar (punteo, acta, recordatorio); no publica sola.
+9. WhatsApp sigue siendo el canal: la página genera textos para copiar (punteo, acta, recordatorio, mensajes modelo, DDO); no publica sola.
+10. **No todo vive en la página**: los inscriptos están en Google Sheets/Forms. La página guarda los links (con tipo), arma los mensajes y las fórmulas de la planilla (`lib/mensajes.ts`: link de WhatsApp por fila, cupo/espera). No guardar teléfonos de inscriptos en la base.
 
 ## Ciclo semanal
 
@@ -29,23 +30,29 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - La actualización semanal cierra el martes a las 22 h (`estadoCierre()`). Lo hecho y lo pendiente salen de las tareas; la persona solo agrega "¿Necesitás algo?".
 - El informe de coordinación (`/coordinacion`) junta actualizaciones, pedidos, trabadas, seguimiento, ideas, proyectos sin movimiento y arma el punteo.
 - En la reunión (`/reuniones/[id]`), quien toma el acta carga notas, decisiones y tareas por tema; las tareas le aparecen enseguida a su responsable.
+- Asistencia (`/columna`): Columna (Isma) marca quién viene, motivo, a quién insistir y cómo llegó (18:00 alguien busca aula, 18:15 en la puerta, 18:30 adentro, 18:35 arranca). La lista es la `nomina` (con o sin cuenta). Cada uno también responde desde Inicio.
+- DDO (`/ddo`, coordinación): se pegan los DDO de las otras comisiones tal cual; `lib/ddo.ts` los separa por "DDO …", ubica cada día (si la fecha no coincide con el día de la semana, avisa) y separa lo de "COMU:". El DDO de AA se arma con tareas, actividades y reuniones de la semana.
 
 ## Mapa del código
 
 - `proxy.ts`: refresca la sesión y manda a `/login` si no hay usuario.
 - `lib/sesion.ts`: `requerirMiembro()` / `requerirCoord()` devuelven el cliente de Supabase y a la persona logueada.
 - `app/(app)/acciones.ts`: todas las Server Actions. Ante un error guardan un aviso en la cookie `aviso`, que muestra el layout.
-- `app/(app)/`: `page.tsx` (Inicio), `comision/` (proyectos y actividades por mesa, mesas, ideas, líneas), `proyectos/`, `actividades/`, `cargar/`, `reuniones/`, `actualizacion/`, `coordinacion/`, `integrantes/`.
-- `components/`: menú, tabla de tareas, formularios, botones de seguimiento, componentes cliente (`Cliente.tsx`).
+- `app/(app)/`: `page.tsx` (Inicio), `calendario/` (mío y general, arrastrar para cambiar fecha), `comision/` (proyectos y actividades por mesa, mesas, ideas, líneas), `proyectos/`, `actividades/` (+ `[id]/guia` para el celular), `cargar/`, `reuniones/`, `columna/`, `herramientas/`, `actualizacion/`, `coordinacion/`, `ddo/`, `integrantes/`.
+- `components/`: menú, tabla de tareas, formularios, botones de seguimiento, componentes cliente (`Cliente.tsx`, `Calendario.tsx`, `ListaAsistencia.tsx`, `Planilla.tsx`, `DdoAA.tsx`).
+- `lib/etiquetas.ts`: también `PLANTILLAS` (tareas sugeridas con días de anticipación) y `GUIAS` (protocolo de visita y charla).
 - `supabase/esquema.sql`: esquema completo, políticas y triggers (referencia; los cambios se aplican como migraciones nuevas).
 
 ## Pendiente (próximas versiones)
 
-- Inscriptos: importar planilla, repartir contactos entre compañeros, mensajes listos para copiar, confirmación y asistencia, pasar a Sumables.
-- DDO semanal con texto para WhatsApp.
+- Inscriptos: ya hay esquema con Google Sheets (fórmulas en cada actividad). Falta: pasar a Sumables y, si hace falta, leer la planilla desde la página.
 - Contactos institucionales y oradores; archivo audiovisual (YouTube).
 - Recordatorios (mail o push) y vista de celular más trabajada.
 - Indicadores, cuando haya datos de base.
+
+## Pruebas locales
+
+No hay acceso a Supabase desde la terminal de Claude: se prueba con un Supabase falso (`/home/claude/mock/server.js`, puerto 54321, aplica filtros `eq`/`in` y guarda escrituras en memoria) y `next dev -p 3200` con `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321`. Los cambios de base se aplican con el conector de Supabase y quedan en `supabase/migraciones/`.
 
 ## Puesta en marcha (estado al 4/11/2026)
 
