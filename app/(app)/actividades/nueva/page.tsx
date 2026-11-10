@@ -3,8 +3,8 @@ import { listasBase } from "@/lib/datos";
 import { FormActividad } from "@/components/Formularios";
 import { crearActividad } from "../../acciones";
 
-export default async function NuevaActividad({ searchParams }: { searchParams: Promise<{ proyecto?: string }> }) {
-  const { proyecto } = await searchParams;
+export default async function NuevaActividad({ searchParams }: { searchParams: Promise<{ proyecto?: string; fecha?: string }> }) {
+  const { proyecto, fecha } = await searchParams;
   const { supabase, yo } = await requerirMiembro();
   const listas = await listasBase(supabase);
   let mesa: string | null = null;
@@ -22,7 +22,7 @@ export default async function NuevaActividad({ searchParams }: { searchParams: P
       </div>
       <FormActividad
         accion={crearActividad}
-        a={{ proyecto_id: proyecto ?? null, mesa_id: mesa }}
+        a={{ proyecto_id: proyecto ?? null, mesa_id: mesa, fecha: fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : null }}
         listas={listas}
         yoId={yo.id}
         cancelar={proyecto ? `/proyectos/${proyecto}` : "/comision"}

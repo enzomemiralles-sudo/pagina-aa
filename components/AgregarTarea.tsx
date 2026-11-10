@@ -9,11 +9,12 @@ type Props = {
   actividadId?: string | null;
   reunionId?: string | null;
   temaId?: string | null;
+  venceInicial?: string | null;
   sufijo: string;
 };
 
 /** Fila para cargar una tarea en el lugar: qué, quién y para cuándo. */
-export function AgregarTarea({ personas, responsableInicial, proyectoId, actividadId, reunionId, temaId, sufijo }: Props) {
+export function AgregarTarea({ personas, responsableInicial, proyectoId, actividadId, reunionId, temaId, venceInicial, sufijo }: Props) {
   return (
     <form action={crearTarea} className="fila-tarea">
       {proyectoId && <input type="hidden" name="proyecto_id" value={proyectoId} />}
@@ -35,7 +36,7 @@ export function AgregarTarea({ personas, responsableInicial, proyectoId, activid
       </div>
       <div className="campo">
         <label htmlFor={`f-${sufijo}`}>Para cuándo</label>
-        <input id={`f-${sufijo}`} name="vence" type="date" />
+        <input id={`f-${sufijo}`} name="vence" type="date" defaultValue={venceInicial ?? ""} />
       </div>
       <Enviar className="boton primario" pendiente="…">Agregar</Enviar>
     </form>

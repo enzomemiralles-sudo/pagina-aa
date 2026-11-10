@@ -72,6 +72,7 @@ export function FormProyecto({ accion, p = {}, listas, yoId, cancelar }: { accio
 type Actividad = {
   id?: string; nombre?: string; tipo?: string; descripcion?: string | null; proyecto_id?: string | null; linea_id?: string | null;
   mesa_id?: string | null; responsable_id?: string | null; fecha?: string | null; hora?: string | null; lugar?: string | null; identidad?: string;
+  cupo?: number | null;
 };
 
 export function FormActividad({ accion, a = {}, listas, yoId, cancelar }: { accion: (fd: FormData) => Promise<void>; a?: Actividad; listas: Listas; yoId: string; cancelar: string }) {
@@ -95,7 +96,8 @@ export function FormActividad({ accion, a = {}, listas, yoId, cancelar }: { acci
       <div className="fila-campos">
         <div className="campo"><label htmlFor="fecha">Fecha</label><input id="fecha" name="fecha" type="date" defaultValue={a.fecha ?? ""} /></div>
         <div className="campo"><label htmlFor="hora">Hora</label><input id="hora" name="hora" type="text" placeholder="19 h" defaultValue={a.hora ?? ""} /></div>
-        <div className="campo"><label htmlFor="lugar">Lugar o plataforma</label><input id="lugar" name="lugar" type="text" placeholder="Zoom, aula, institución…" defaultValue={a.lugar ?? ""} /></div>
+        <div className="campo"><label htmlFor="lugar">Lugar o plataforma</label><input id="lugar" name="lugar" type="text" placeholder="Zoom, dirección de la institución…" defaultValue={a.lugar ?? ""} /></div>
+        <div className="campo"><label htmlFor="cupo">Cupo</label><input id="cupo" name="cupo" type="number" min={1} placeholder="30" defaultValue={a.cupo ?? ""} /></div>
       </div>
       <div className="campo">
         <label htmlFor="descripcion">De qué se trata</label>
@@ -110,7 +112,7 @@ export function FormActividad({ accion, a = {}, listas, yoId, cancelar }: { acci
       <Identidad valor={a.identidad} />
       {!a.id && (
         <label className="check">
-          <input type="checkbox" name="plantilla" value="si" defaultChecked /> Cargar las tareas sugeridas (charla o visita). Después se pueden borrar o cambiar.
+          <input type="checkbox" name="plantilla" value="si" defaultChecked /> Cargar las tareas sugeridas y la guía del día (charla o visita). Si tiene fecha, cada tarea vence unos días antes. Después se puede cambiar todo.
         </label>
       )}
       <div className="acciones">
