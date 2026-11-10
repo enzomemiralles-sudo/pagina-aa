@@ -9,8 +9,9 @@ import { AgregarTarea } from "@/components/AgregarTarea";
 import { TablaTareas } from "@/components/TablaTareas";
 import { Enviar } from "@/components/Cliente";
 import { crearReunion } from "../acciones";
+import { SemanaAgrupacion } from "./semana";
 
-type Params = { vista?: string; mes?: string; dia?: string; otras?: string };
+type Params = { vista?: string; mes?: string; dia?: string; otras?: string; semana?: string };
 
 function mesValido(m?: string) {
   return m && /^\d{4}-\d{2}$/.test(m) ? m : null;
@@ -25,6 +26,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   const sp = await searchParams;
   const { supabase, yo } = await requerirMiembro();
   const hoy = hoyBA();
+  if (sp.vista === "semana") return <SemanaAgrupacion semana={sp.semana} />;
   const vista = sp.vista === "general" ? "general" : "mio";
   const mes = mesValido(sp.mes) ?? hoy.slice(0, 7);
   const diaSel = sp.dia && /^\d{4}-\d{2}-\d{2}$/.test(sp.dia) ? sp.dia : null;
@@ -42,7 +44,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   let qAct = supabase.from("actividades").select("id, nombre, tipo, estado, fecha, hora, responsable_id, created_by").gte("fecha", inicio).lte("fecha", fin).neq("estado", "cancelada");
   if (vista === "mio") qAct = qAct.eq("responsable_id", yo.id);
 
-  const [tareasR, actR, reuR, personas, ddoR] = await Promise.all([
+  const [tareasR, actR, reuR, personas, ddoR, evR] = await Promise.all([
     qTareas,
     qAct,
     supabase.from("reuniones").select("id, fecha, hora, estado").gte("fecha", inicio).lte("fecha", fin),
@@ -50,6 +52,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
     verOtras
       ? supabase.from("ddo").select("comision, texto, created_at, semana").gte("semana", sumarDias(inicio, -7)).lte("semana", fin)
       : Promise.resolve({ data: [] }),
+    supabase.from("eventos").select("id, titulo, fecha, hora, origen").gte("fecha", inicio).lte("fecha", fin),
   ]);
 
   const tareas = (tareasR.data ?? []) as unknown as Tarea[];
@@ -57,6 +60,9 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   const reuniones = (reuR.data ?? []) as { id: string; fecha: string; hora: string; estado: string }[];
 
   const items: ItemCal[] = [];
+  for (const e of (evR.data ?? []) as { id: string; titulo: string; fecha: string; hora: string | null; origen: string }[]) {
+    items.push({ clave: `e${e.id}`, id: e.id, tipo: "evento", fecha: e.fecha, titulo: `${e.hora ? e.hora + " " : ""}${e.titulo}`, color: "evento", estado: e.origen, movible: false });
+  }
   for (const r of reuniones) {
     items.push({ clave: `r${r.id}`, id: r.id, tipo: "reunion", fecha: r.fecha, titulo: `Reunión de AA ${r.hora}`, color: "reunion", estado: ESTADO_REUNION[r.estado]?.texto ?? r.estado, href: `/reuniones/${r.id}`, movible: yo.esCoord });
   }
@@ -121,6 +127,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
           <nav className="segmentado" aria-label="Qué calendario ver">
             <Link href={enlace({ vista: "mio", dia: null })} aria-current={vista === "mio" ? "page" : undefined}>Mío</Link>
             <Link href={enlace({ vista: "general", dia: null })} aria-current={vista === "general" ? "page" : undefined}>General</Link>
+            <Link href="/calendario?vista=semana">Semana de la agrupación</Link>
           </nav>
           <Link href={enlace({ mes: mesSumar(mes, -1), dia: null })} className="boton chico" aria-label="Mes anterior">‹</Link>
           <Link href={enlace({ mes: hoy.slice(0, 7), dia: hoy })} className="boton chico">Hoy</Link>
@@ -130,6 +137,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
 
       <div className="acciones chico suave leyenda">
         <span><span className="cal-item reunion muestra">Reunión</span></span>
+        <span><span className="cal-item evento muestra">Agrupación</span></span>
         <span><span className="chip azul">Azul</span> en marcha</span>
         <span><span className="chip ambar">Ámbar</span> vence hoy</span>
         <span><span className="chip rojo">Rojo</span> vencida o trabada</span>
@@ -156,7 +164,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
                   {items.filter((i) => i.fecha === d && i.tipo !== "otra").map((i) => (
                     <span key={i.clave}>
                       {i.href ? <Link href={i.href}>{i.titulo}</Link> : i.titulo}{" "}
-                      <span className={`chip ${i.color === "reunion" || i.color === "otra" ? "gris" : i.color}`}>{i.estado}</span>
+                      <span className={`chip ${i.color === "reunion" || i.color === "otra" || i.color === "evento" ? "gris" : i.color}`}>{i.estado}</span>
                     </span>
                   ))}
                 </span>
@@ -175,6 +183,10 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
             <Link href={enlace({ dia: null })} className="boton texto chico" scroll={false}>Cerrar</Link>
           </div>
 
+          {delDia.filter((i) => i.tipo === "evento").map((i) => (
+            <p key={i.clave}><span className="cal-item evento muestra">{i.estado}</span> <strong>{i.titulo}</strong></p>
+          ))}
+
           {delDia.filter((i) => i.tipo === "reunion" || i.tipo === "actividad").length > 0 && (
             <ul className="lista">
               {delDia.filter((i) => i.tipo === "reunion" || i.tipo === "actividad").map((i) => (
@@ -183,7 +195,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
                     <Link href={i.href!} style={{ fontWeight: 700 }}>{i.titulo}</Link>
                     <span className="suave chico">{i.tipo === "reunion" ? "Reunión de comisión" : TIPO_ACTIVIDAD[actividades.find((a) => a.id === i.id)?.tipo ?? ""] ?? "Actividad"}</span>
                   </span>
-                  <span className={`chip ${i.color === "reunion" ? "gris" : i.color}`}>{i.estado}</span>
+                  <span className={`chip ${i.color === "reunion" || i.color === "evento" ? "gris" : i.color}`}>{i.estado}</span>
                 </li>
               ))}
             </ul>

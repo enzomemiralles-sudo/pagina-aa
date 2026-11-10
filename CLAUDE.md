@@ -22,7 +22,8 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 7. **Código de colores** (solo indica estado, siempre con texto): rojo = problema (trabado, vencido, sin movimiento) · ámbar = atención (vence hoy, esperando seguimiento, falta cerrar) · azul = en marcha · verde = listo · gris = sin empezar. Azul oscuro `#1b2a4a` = menú y botones principales. Las etiquetas están en `lib/etiquetas.ts`.
 8. Interfaz en español rioplatense, con voseo. Fechas en hora de Buenos Aires (`lib/fechas.ts`).
 9. WhatsApp sigue siendo el canal: la página genera textos para copiar (punteo, acta, recordatorio, mensajes modelo, DDO); no publica sola.
-10. **No todo vive en la página**: los inscriptos están en Google Sheets/Forms. La página guarda los links (con tipo), arma los mensajes y las fórmulas de la planilla (`lib/mensajes.ts`: link de WhatsApp por fila, cupo/espera). No guardar teléfonos de inscriptos en la base.
+10. **No todo vive en la página**: las inscripciones están en el Form de actividades y su planilla de Google (con DNI y datos sensibles: nunca se importan). Para repartir, se pega lo copiado de la planilla y `lib/contactos.ts` lo lee **en el navegador**: solo viajan a la base nombre y teléfono de cada inscripto (`bloques.contactos`), visibles para quien repartió, coordinación y el compañero asignado, y `pg_cron` (`purgar-contactos`) los borra 7 días después del día de contacto.
+11. Color por comisión **solo** en la semana de la agrupación (`/calendario?vista=semana`, clases `com-*`), siempre con el nombre de la comisión escrito; en el resto de la página el color sigue diciendo el estado.
 
 ## Ciclo semanal
 
@@ -31,6 +32,9 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - El informe de coordinación (`/coordinacion`) junta actualizaciones, pedidos, trabadas, seguimiento, ideas, proyectos sin movimiento y arma el punteo.
 - En la reunión (`/reuniones/[id]`), quien toma el acta carga notas, decisiones y tareas por tema; las tareas le aparecen enseguida a su responsable.
 - Asistencia (`/columna`): Columna (Isma) marca quién viene, motivo, a quién insistir y cómo llegó (18:00 alguien busca aula, 18:15 en la puerta, 18:30 adentro, 18:35 arranca). La lista es la `nomina` (con o sin cuenta). Cada uno también responde desde Inicio.
+- Contactos (`/contactos`): grilla de quién contacta cada día; "Repartir" (pegar filas → filtrar actividad → bloques de hasta 30 → tareas con enlace a `/contactos/b/[id]`); seguimiento en `/contactos/r/[id]`.
+- Comunicación (`/comunicacion`): las piezas son tareas con `canal` (form, posteo, historia, reel); el plan sugerido está en `PLAN_COMUNICACION`.
+- Semana de la agrupación (`/calendario?vista=semana`): AA, DDO de las comisiones (coordinación) y `eventos` (fechas de la agrupación; sin fecha = a confirmar).
 - DDO (`/ddo`, coordinación): se pegan los DDO de las otras comisiones tal cual; `lib/ddo.ts` los separa por "DDO …", ubica cada día (si la fecha no coincide con el día de la semana, avisa) y separa lo de "COMU:". El DDO de AA se arma con tareas, actividades y reuniones de la semana.
 
 ## Mapa del código
@@ -38,14 +42,14 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - `proxy.ts`: refresca la sesión y manda a `/login` si no hay usuario.
 - `lib/sesion.ts`: `requerirMiembro()` / `requerirCoord()` devuelven el cliente de Supabase y a la persona logueada.
 - `app/(app)/acciones.ts`: todas las Server Actions. Ante un error guardan un aviso en la cookie `aviso`, que muestra el layout.
-- `app/(app)/`: `page.tsx` (Inicio), `calendario/` (mío y general, arrastrar para cambiar fecha), `comision/` (proyectos y actividades por mesa, mesas, ideas, líneas), `proyectos/`, `actividades/` (+ `[id]/guia` para el celular), `cargar/`, `reuniones/`, `columna/`, `herramientas/`, `actualizacion/`, `coordinacion/`, `ddo/`, `integrantes/`.
-- `components/`: menú, tabla de tareas, formularios, botones de seguimiento, componentes cliente (`Cliente.tsx`, `Calendario.tsx`, `ListaAsistencia.tsx`, `Planilla.tsx`, `DdoAA.tsx`).
+- `app/(app)/`: `page.tsx` (Inicio), `calendario/` (mío, general y semana de la agrupación; arrastrar para cambiar fecha), `contactos/`, `comunicacion/`, `comision/` (proyectos y actividades por mesa, mesas, ideas, líneas), `proyectos/`, `actividades/` (+ `[id]/guia` para el celular), `cargar/`, `reuniones/`, `columna/`, `herramientas/`, `actualizacion/`, `coordinacion/`, `ddo/`, `integrantes/`.
+- `components/`: menú, tabla de tareas, formularios, botones de seguimiento, componentes cliente (`Cliente.tsx`, `Calendario.tsx`, `ListaAsistencia.tsx`, `Repartir.tsx`, `ListaContactos.tsx`, `DdoAA.tsx`), `Semana.tsx` (semana en columnas).
 - `lib/etiquetas.ts`: también `PLANTILLAS` (tareas sugeridas con días de anticipación) y `GUIAS` (protocolo de visita y charla).
 - `supabase/esquema.sql`: esquema completo, políticas y triggers (referencia; los cambios se aplican como migraciones nuevas).
 
 ## Pendiente (próximas versiones)
 
-- Inscriptos: ya hay esquema con Google Sheets (fórmulas en cada actividad). Falta: pasar a Sumables y, si hace falta, leer la planilla desde la página.
+- Inscriptos: falta pasar a Sumables. Leer la planilla directo (API de Google con cuenta de servicio) evitaría el copiar y pegar, pero haría que el servidor lea DNI y datos políticos: por ahora no.
 - Contactos institucionales y oradores; archivo audiovisual (YouTube).
 - Recordatorios (mail o push) y vista de celular más trabajada.
 - Indicadores, cuando haya datos de base.

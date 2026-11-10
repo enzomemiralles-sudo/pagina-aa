@@ -61,7 +61,7 @@ p { margin: 0; }
 .menu-cargar:hover { color: var(--azul-oscuro); background: #eef2fa; }
 .menu nav { display: flex; flex-direction: column; gap: 2px; }
 .menu nav a {
-  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 8px;
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px;
   color: #d5dce8; text-decoration: none; font-weight: 500;
 }
 .menu nav a:hover { background: #24365c; color: #fff; }
@@ -297,3 +297,45 @@ select.select-rojo { border-color: var(--rojo); color: var(--rojo); font-weight:
 .guia-texto { white-space: pre-wrap; font-size: 15px; line-height: 1.6; }
 .guia-movil { max-width: 640px; }
 .guia-movil .guia-texto { font-size: 17px; line-height: 1.65; }
+
+/* ===== Contactos ===== */
+.lista.contactos > li { padding: 10px 0; }
+.lista.contactos > li.hecho .cuerpo strong { color: var(--suave); text-decoration: line-through; }
+
+/* ===== Semana (lunes a domingo en columnas) ===== */
+.semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.semana-dia { background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 8px; min-height: 140px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.semana-dia.hoy { border: 2px solid var(--azul-oscuro); }
+.semana-dia h3 { font-size: 13px; color: var(--suave); }
+.semana-dia.hoy h3 { color: var(--azul-oscuro); }
+.semana-dia ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.semana-item > a, .semana-item > div { display: flex; flex-direction: column; gap: 1px; padding: 5px 7px; border-radius: 6px; border-left: 4px solid var(--c, var(--gris-b)); background: var(--cf, var(--gris-f)); color: var(--tinta); text-decoration: none; font-size: 12px; line-height: 1.35; }
+.semana-item > a:hover { filter: brightness(0.97); }
+.semana-etiqueta { font-size: 11px; font-weight: 700; color: var(--c, var(--gris)); text-transform: uppercase; letter-spacing: 0.03em; }
+.semana-texto { font-weight: 600; overflow-wrap: anywhere; }
+.semana-detalle { color: var(--suave); font-size: 11px; }
+/* Estado (Comunicación) */
+.semana-item.rojo { --c: var(--rojo); --cf: var(--rojo-f); }
+.semana-item.ambar { --c: var(--ambar); --cf: var(--ambar-f); }
+.semana-item.azul { --c: var(--azul); --cf: var(--azul-f); }
+.semana-item.verde { --c: var(--verde); --cf: var(--verde-f); }
+.semana-item.gris { --c: var(--gris); --cf: var(--gris-f); }
+/* Comisiones (solo en la semana de la agrupación: acá el color dice de quién es, no el estado) */
+.semana-item.com-aa { --c: #1b2a4a; --cf: #e4e8f1; }
+.semana-item.com-agrupacion { --c: #a21caf; --cf: #fae8ff; }
+.semana-item.com-1 { --c: #6d28d9; --cf: #ede9fe; }
+.semana-item.com-2 { --c: #0f766e; --cf: #ccfbf1; }
+.semana-item.com-3 { --c: #be185d; --cf: #fce7f3; }
+.semana-item.com-4 { --c: #0e7490; --cf: #cffafe; }
+.semana-item.com-5 { --c: #854d0e; --cf: #fef9c3; }
+.semana-item.com-6 { --c: #4338ca; --cf: #e0e7ff; }
+.semana-item.com-7 { --c: #57534e; --cf: #f5f5f4; }
+.semana-item.com-comu { --c: #c2410c; --cf: #ffedd5; }
+.leyenda-comisiones { display: flex; flex-wrap: wrap; gap: 8px; }
+.leyenda-comisiones .semana-item { list-style: none; }
+.leyenda-comisiones .semana-item > div { flex-direction: row; align-items: center; padding: 3px 8px; }
+@media (max-width: 900px) {
+  .semana { grid-template-columns: 1fr; }
+  .semana-dia { min-height: 0; }
+}
+.cal-item.evento { background: #fae8ff; color: #86198f; border-left-color: #a21caf; }

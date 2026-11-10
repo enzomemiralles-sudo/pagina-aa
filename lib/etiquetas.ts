@@ -85,6 +85,15 @@ export const TIPO_ENLACE: Record<string, { texto: string; ayuda: string }> = {
   otro: { texto: "Otro", ayuda: "" },
 };
 
+// Piezas de comunicación (son tareas con canal).
+export const CANAL: Record<string, string> = {
+  form: "Form",
+  posteo: "Posteo",
+  historia: "Historia",
+  reel: "Reel",
+  otro: "Difusión",
+};
+
 export const PARA_MENSAJE: Record<string, string> = {
   visita: "Visitas",
   charla: "Charlas",
@@ -129,9 +138,7 @@ export const PLANTILLAS: Record<string, [string, number][]> = {
     ["Definir con el orador los temas de la charla", 14],
     ["Confirmar fecha (a la tarde), horario y datos del orador", 14],
     ["Crear el link de Zoom", 12],
-    ["Armar el Form de inscripción y la planilla de contactos", 12],
-    ["Difundir junto con las otras actividades del ciclo (posteo e historias)", 10],
-    ["Repartir inscriptos y mandar el mensaje con el link", 2],
+    ["Repartir inscriptos y mandar el mensaje con el link (página: Contactos)", 2],
     ["Mandar el recordatorio el día de la charla", 0],
     ["Preparar la presentación del orador", 1],
     ["Grabar la charla y guardar la grabación", 0],
@@ -140,13 +147,9 @@ export const PLANTILLAS: Record<string, [string, number][]> = {
   visita: [
     ["Pedir turno a la institución (2 semanas antes: qué día, mañana o tarde)", 14],
     ["Confirmar fecha, horario, cupo y requisitos de ingreso", 12],
-    ["Armar el Form de inscripción y la planilla de contactos", 12],
-    ["Publicar la convocatoria en Instagram", 10],
-    ["Programar historias de recordatorio cada pocos días", 9],
-    ["Decidir si hacemos reel", 9],
     ["Crear el grupo de WhatsApp de la visita (con foto de perfil temática)", 8],
     ["Definir los dos responsables: contacto (habla y entra a avisar, lleva DNI) y registro (graba para Instagram)", 7],
-    ["Repartir inscriptos y mandar la confirmación con el link del grupo", 5],
+    ["Repartir inscriptos y mandar la confirmación con el link del grupo (página: Contactos)", 5],
     ["Preparar el speech y pasárselo a los compañeros que van", 3],
     ["Recordatorio el día anterior y avisar si se liberaron lugares", 1],
     ["Pasarle el número final a la institución", 1],
@@ -154,6 +157,17 @@ export const PLANTILLAS: Record<string, [string, number][]> = {
     ["Subir el material a Instagram y cargar el cierre", -3],
   ],
 };
+
+// Plan de comunicación de cada actividad: son tareas con canal, y se ven en la pestaña Comunicación.
+export const PLAN_COMUNICACION: [string, number, string][] = [
+  ["Cargar la actividad al Form de actividades", 12, "form"],
+  ["Posteo de convocatoria", 10, "posteo"],
+  ["Historia recordatorio", 8, "historia"],
+  ["Reel (decidir si va)", 7, "reel"],
+  ["Historia recordatorio", 5, "historia"],
+  ["Historia: últimos lugares", 2, "historia"],
+  ["Historia: es hoy", 0, "historia"],
+];
 
 // Guía para el día, editable en cada actividad. Se puede abrir en el celular.
 export const GUIAS: Record<string, string> = {
@@ -196,3 +210,26 @@ DESPUÉS
 - Mandar la encuesta.
 - Guardar la grabación y cargar el cierre.`,
 };
+
+// Semana de la agrupación: un color por comisión (siempre con el nombre al lado).
+const COLOR_COMISION: Record<string, string> = {
+  "actividades academicas": "com-aa",
+  aa: "com-aa",
+  agrupacion: "com-agrupacion",
+  jup: "com-agrupacion",
+  nexo: "com-agrupacion",
+  comunicacion: "com-comu",
+  comu: "com-comu",
+  coyuntura: "com-1",
+  columna: "com-2",
+  sumables: "com-3",
+  tradu: "com-4",
+  cgt: "com-5",
+};
+export function claseComision(nombre: string): string {
+  const k = nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  if (COLOR_COMISION[k]) return COLOR_COMISION[k];
+  let h = 0;
+  for (const c of k) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h % 2 ? "com-6" : "com-7";
+}

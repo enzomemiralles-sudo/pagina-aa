@@ -25,3 +25,4 @@ export const IconoDocumento = (p: P) => (<Base {...p}><path d="M7 3h7l5 5v13H7z"
 export const IconoCalendario = (p: P) => (<Base {...p}><rect x="3.5" y="5" width="17" height="15.5" rx="2" /><path d="M3.5 10h17M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01" /></Base>);
 export const IconoTilde = (p: P) => (<Base {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 13l2 2 4-4" /></Base>);
 export const IconoEnlace = (p: P) => (<Base {...p}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></Base>);
+export const IconoMegafono = (p: P) => (<Base {...p}><path d="M4 10v4h3l7 4V6L7 10z" /><path d="M17.5 9a4 4 0 0 1 0 6" /></Base>);

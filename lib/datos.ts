@@ -46,12 +46,14 @@ export type Tarea = {
   updated_at: string;
   hecha_at: string | null;
   created_by: string | null;
+  enlace?: string | null;
+  canal?: string | null;
   proyectos?: { nombre: string } | null;
   actividades?: { nombre: string } | null;
 };
 
 export const SELECT_TAREA =
-  "id, titulo, estado, vence, responsable_id, nota_trabada, proyecto_id, actividad_id, updated_at, hecha_at, created_by, proyectos(nombre), actividades(nombre)";
+  "id, titulo, estado, vence, responsable_id, nota_trabada, proyecto_id, actividad_id, updated_at, hecha_at, created_by, enlace, canal, proyectos(nombre), actividades(nombre)";
 
 export function contextoTarea(t: Tarea): string {
   return t.proyectos?.nombre ?? t.actividades?.nombre ?? "Comisión";

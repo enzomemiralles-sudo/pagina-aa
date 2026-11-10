@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requerirMiembro } from "@/lib/sesion";
 import { PARA_MENSAJE, TIPO_ENLACE } from "@/lib/etiquetas";
 import { VARIABLES } from "@/lib/mensajes";
@@ -160,15 +161,15 @@ export default async function Herramientas() {
       <section className="tarjeta" aria-labelledby="con-t">
         <h2 id="con-t">Cómo contactamos a los inscriptos</h2>
         <p className="suave">
-          Los datos de los inscriptos viven en la planilla de Google, no en la página. La página guarda los links y arma los mensajes y las fórmulas.
+          Las inscripciones viven en el Form de actividades y su planilla de Google. La página arma el texto para el Form, reparte los contactos y lleva el seguimiento.
         </p>
         <ol className="pasos">
-          <li><strong>Form de inscripción</strong> con las preguntas de abajo. Cupo habitual por visita: 30.</li>
-          <li><strong>Planilla</strong> con las respuestas. Se reparte: cada compañero se pone en la columna “Compañero que escribe” de unas 10 filas.</li>
-          <li><strong>Mensaje</strong>: cada fila tiene un link “Escribir” que abre WhatsApp con el mensaje ya armado. La fórmula está en la página de cada actividad.</li>
-          <li><strong>Grupo de WhatsApp</strong> de la actividad: el link va en la confirmación. Ahí van los recordatorios.</li>
-          <li><strong>Cancelaciones</strong>: se puede cancelar hasta 24 h antes (está en el Form y en la confirmación). Si alguien cancela, el primero en espera pasa a cupo solo y se le escribe “Se liberó un lugar”.</li>
-          <li><strong>El día</strong>: en Estado se marca quién asistió. Después se manda la encuesta.</li>
+          <li><strong>Form de actividades</strong>: se carga la actividad como opción con el texto que da la página (en cada actividad, “Opción para el Form de actividades”).</li>
+          <li><strong>Difusión</strong>: el plan de cada actividad (posteo, historias, reel) está en <Link href="/comunicacion">Comunicación</Link>, con quién y cuándo.</li>
+          <li><strong>Repartir</strong>: quien reparte va a <Link href="/contactos?vista=repartir">Contactos → Repartir</Link>, pega las últimas filas de la planilla y la página filtra la actividad, saca repetidos y reparte según la grilla del día (máximo 30 por persona). Ya no hace falta la IA.</li>
+          <li><strong>Mandar</strong>: a cada compañero le aparece la tarea con el mensaje y su lista; cada contacto tiene un botón que abre WhatsApp con el mensaje y el nombre puestos.</li>
+          <li><strong>Seguimiento</strong>: quien reparte ve cuánto mandó cada uno. A quien no tiene cuenta, le pasa su bloque por WhatsApp con “Copiar para mandar”.</li>
+          <li><strong>Cancelaciones</strong>: hasta 24 h antes (está en el Form y en la confirmación). Los teléfonos que guarda la página se borran solos 7 días después del día de contacto.</li>
         </ol>
         <div className="grilla">
           <div>

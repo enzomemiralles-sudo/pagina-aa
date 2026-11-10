@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { crearCliente } from "@/lib/supabase/server";
-import { GUIAS, PLANTILLAS } from "@/lib/etiquetas";
+import { GUIAS, PLAN_COMUNICACION, PLANTILLAS } from "@/lib/etiquetas";
+import { opcionForm } from "@/lib/contactos";
 import { hoyBA, lunesDe, semanaActual, sumarDias } from "@/lib/fechas";
 import { separarDdos } from "@/lib/ddo";
 
@@ -308,6 +309,20 @@ function datosActividad(fd: FormData) {
   };
 }
 
+function venceAntes(fecha: string | null, dias: number) {
+  if (!fecha) return null;
+  const hoy = hoyBA();
+  const v = sumarDias(fecha, -dias);
+  return v < hoy ? hoy : v; // si ya pasó, vence hoy
+}
+
+async function insertarPlan(supabase: Awaited<ReturnType<typeof crearCliente>>, actividadId: string, fecha: string | null, responsable: string | null) {
+  const { error } = await supabase
+    .from("tareas")
+    .insert(PLAN_COMUNICACION.map(([titulo, dias, canal]) => ({ titulo, canal, actividad_id: actividadId, responsable_id: responsable, vence: venceAntes(fecha, dias) })));
+  return error;
+}
+
 async function insertarPlantilla(
   supabase: Awaited<ReturnType<typeof crearCliente>>,
   actividadId: string,
@@ -317,17 +332,23 @@ async function insertarPlantilla(
 ) {
   const lista = PLANTILLAS[tipo];
   if (!lista) return null;
-  const hoy = hoyBA();
-  // Si la actividad tiene fecha, cada tarea vence unos días antes (si ya pasó, vence hoy).
-  const vence = (dias: number) => {
-    if (!fecha) return null;
-    const v = sumarDias(fecha, -dias);
-    return v < hoy ? hoy : v;
-  };
+  // Si la actividad tiene fecha, cada tarea vence unos días antes.
   const { error } = await supabase
     .from("tareas")
-    .insert(lista.map(([titulo, dias]) => ({ titulo, actividad_id: actividadId, responsable_id: responsable, vence: vence(dias) })));
-  return error;
+    .insert(lista.map(([titulo, dias]) => ({ titulo, actividad_id: actividadId, responsable_id: responsable, vence: venceAntes(fecha, dias) })));
+  if (error) return error;
+  return insertarPlan(supabase, actividadId, fecha, null);
+}
+
+export async function armarPlanComunicacion(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  if (!id) return;
+  const { data } = await supabase.from("actividades").select("fecha").eq("id", id).single();
+  const e = await insertarPlan(supabase, id, data?.fecha ?? null, null);
+  if (await fallo(e)) return;
+  refrescar();
+  await avisar("Plan de comunicación cargado. Falta poner quién hace cada pieza.", "verde");
 }
 
 export async function crearActividad(fd: FormData) {
@@ -337,7 +358,12 @@ export async function crearActividad(fd: FormData) {
   // Dentro de un proyecto aprobado, la base la deja aprobada si corresponde; si no, queda como propuesta.
   const { data, error } = await supabase
     .from("actividades")
-    .insert({ ...datos, estado: datos.proyecto_id ? "aprobada" : "propuesta", guia: GUIAS[datos.tipo] ?? null })
+    .insert({
+      ...datos,
+      estado: datos.proyecto_id ? "aprobada" : "propuesta",
+      guia: GUIAS[datos.tipo] ?? null,
+      opcion_form: opcionForm(datos.fecha, datos.hora, datos.nombre),
+    })
     .select("id")
     .single();
   if (await fallo(error)) return;
@@ -728,4 +754,194 @@ export async function guardarDdoAA(fd: FormData) {
   if (await fallo(error)) return;
   refrescar();
   await avisar("DDO de AA guardado en la semana.", "verde");
+}
+
+// ---------- Contactos: grilla y repartos ----------
+export async function guardarGrilla(fd: FormData) {
+  const { supabase } = await cliente();
+  const dia = Number(txt(fd, "dia"));
+  if (!(dia >= 0 && dia <= 6)) return;
+  const titulares = fd.getAll("titulares").map(String).filter(Boolean);
+  const suplentes = fd.getAll("suplentes").map(String).filter(Boolean);
+  const { error: e1 } = await supabase.from("grilla_mensajes").delete().eq("dia", dia);
+  if (await fallo(e1)) return;
+  const filas = [
+    ...titulares.map((nomina_id, orden) => ({ dia, nomina_id, suplente: false, orden })),
+    ...suplentes.map((nomina_id, orden) => ({ dia, nomina_id, suplente: true, orden })),
+  ];
+  if (filas.length) {
+    const { error } = await supabase.from("grilla_mensajes").insert(filas);
+    if (await fallo(error)) return;
+  }
+  refrescar();
+  await avisar("Grilla guardada.", "verde");
+}
+
+type BloqueNuevo = { nominaId: string | null; contactos: { n: number; nombre: string; tel: string }[] };
+
+/** Crea el reparto, un bloque por compañero y la tarea de cada uno (y la de seguimiento para quien reparte). */
+export async function crearReparto(d: { actividadId: string | null; titulo: string; fechaContacto: string; mensaje: string; bloques: BloqueNuevo[] }) {
+  const { supabase, uid } = await cliente();
+  if (!d.titulo || !/^\d{4}-\d{2}-\d{2}$/.test(d.fechaContacto) || !d.bloques.length) return { error: "Faltan datos del reparto." };
+  // Solo nombre y teléfono, por si acaso.
+  const limpios = d.bloques.map((b) => ({
+    nominaId: b.nominaId,
+    contactos: b.contactos.map((c) => ({ n: Number(c.n), nombre: String(c.nombre).slice(0, 80), tel: String(c.tel).replace(/\D/g, "").slice(-10) })),
+  }));
+  const total = limpios.reduce((s, b) => s + b.contactos.length, 0);
+  const { data: rep, error } = await supabase
+    .from("repartos")
+    .insert({ actividad_id: d.actividadId, titulo: d.titulo, fecha_contacto: d.fechaContacto, mensaje: d.mensaje, total, creado_por: uid })
+    .select("id")
+    .single();
+  if (error) return { error: traducir(error.message) };
+
+  const { data: bloques, error: e2 } = await supabase
+    .from("bloques")
+    .insert(limpios.map((b, i) => ({ reparto_id: rep.id, numero: i + 1, nomina_id: b.nominaId, contactos: b.contactos, cantidad: b.contactos.length })))
+    .select("id, numero, nomina_id, cantidad");
+  if (e2) return { error: traducir(e2.message) };
+
+  // Tareas: a cada compañero con cuenta, su bloque; a quien reparte, el seguimiento.
+  const ids = (bloques ?? []).map((b) => b.nomina_id).filter(Boolean) as string[];
+  const { data: nom } = ids.length ? await supabase.from("nomina").select("id, integrante_id").in("id", ids) : { data: [] };
+  const cuenta = new Map((nom ?? []).map((n) => [n.id, n.integrante_id as string | null]));
+  const corto = d.titulo.split("|").pop()!.trim().slice(0, 60);
+  for (const b of bloques ?? []) {
+    const responsable = b.nomina_id ? cuenta.get(b.nomina_id) : null;
+    if (!responsable) continue;
+    const { data: t } = await supabase
+      .from("tareas")
+      .insert({ titulo: `Mandar mensajes: ${corto} (B${b.numero} · ${b.cantidad})`, responsable_id: responsable, vence: d.fechaContacto, actividad_id: d.actividadId, enlace: `/contactos/b/${b.id}` })
+      .select("id")
+      .single();
+    if (t) await supabase.from("bloques").update({ tarea_id: t.id }).eq("id", b.id);
+  }
+  await supabase.from("tareas").insert({
+    titulo: `Seguimiento: que todos manden los mensajes de ${corto}`,
+    responsable_id: uid,
+    vence: d.fechaContacto,
+    actividad_id: d.actividadId,
+    enlace: `/contactos/r/${rep.id}`,
+  });
+  refrescar();
+  return { error: null, id: rep.id as string };
+}
+
+export async function marcarContacto(bloqueId: string, n: number, enviado: boolean) {
+  const { supabase } = await cliente();
+  const { data } = await supabase.from("bloques").select("enviados").eq("id", bloqueId).single();
+  if (!data) return { error: "No encontré el bloque." };
+  const set = new Set<number>(data.enviados ?? []);
+  if (enviado) set.add(n);
+  else set.delete(n);
+  const { error } = await supabase.from("bloques").update({ enviados: [...set].sort((a, b) => a - b) }).eq("id", bloqueId);
+  if (error) return { error: traducir(error.message) };
+  refrescar();
+  return { error: null };
+}
+
+export async function marcarBloqueListo(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  const listo = fd.get("listo") !== "no";
+  if (!id) return;
+  const { data: b, error } = await supabase.from("bloques").update({ listo }).eq("id", id).select("tarea_id").single();
+  if (await fallo(error)) return;
+  if (b?.tarea_id) await supabase.from("tareas").update({ estado: listo ? "hecha" : "pendiente" }).eq("id", b.tarea_id);
+  refrescar();
+  if (listo) await avisar("¡Gracias! Quedó marcado como enviado.", "verde");
+}
+
+export async function reasignarBloque(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  const nominaId = txt(fd, "nomina_id");
+  if (!id) return;
+  const { data: b, error } = await supabase
+    .from("bloques")
+    .update({ nomina_id: nominaId })
+    .eq("id", id)
+    .select("tarea_id, numero, cantidad, reparto_id, repartos(titulo, fecha_contacto, actividad_id)")
+    .single();
+  if (await fallo(error)) return;
+  const { data: n } = nominaId ? await supabase.from("nomina").select("integrante_id").eq("id", nominaId).maybeSingle() : { data: null };
+  const responsable = n?.integrante_id ?? null;
+  if (b?.tarea_id) {
+    if (responsable) await supabase.from("tareas").update({ responsable_id: responsable }).eq("id", b.tarea_id);
+    else await supabase.from("tareas").update({ estado: "cancelada" }).eq("id", b.tarea_id);
+  } else if (b && responsable) {
+    const r = (b as unknown as { repartos: { titulo: string; fecha_contacto: string; actividad_id: string | null } }).repartos;
+    const corto = r.titulo.split("|").pop()!.trim().slice(0, 60);
+    const { data: t } = await supabase
+      .from("tareas")
+      .insert({ titulo: `Mandar mensajes: ${corto} (B${b.numero} · ${b.cantidad})`, responsable_id: responsable, vence: r.fecha_contacto, actividad_id: r.actividad_id, enlace: `/contactos/b/${id}` })
+      .select("id")
+      .single();
+    if (t) await supabase.from("bloques").update({ tarea_id: t.id }).eq("id", id);
+  }
+  refrescar();
+}
+
+export async function borrarReparto(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  if (!id) return;
+  const { data: bs } = await supabase.from("bloques").select("tarea_id").eq("reparto_id", id);
+  const tareas = (bs ?? []).map((b) => b.tarea_id).filter(Boolean) as string[];
+  if (tareas.length) await supabase.from("tareas").delete().in("id", tareas);
+  await supabase.from("tareas").delete().eq("enlace", `/contactos/r/${id}`);
+  const { error } = await supabase.from("repartos").delete().eq("id", id);
+  if (await fallo(error)) return;
+  refrescar();
+  redirect("/contactos?vista=repartos");
+}
+
+export async function guardarOpcionForm(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  if (!id) return;
+  const { error } = await supabase.from("actividades").update({ opcion_form: txt(fd, "opcion_form") }).eq("id", id);
+  if (await fallo(error)) return;
+  refrescar();
+}
+
+export async function guardarGrillaCompleta(fd: FormData) {
+  const { supabase } = await cliente();
+  const filas: { dia: number; nomina_id: string; suplente: boolean; orden: number }[] = [];
+  for (const [k, v] of fd.entries()) {
+    const m = k.match(/^c_(.+)_(\d)$/);
+    if (!m || (v !== "t" && v !== "s")) continue;
+    filas.push({ dia: Number(m[2]), nomina_id: m[1], suplente: v === "s", orden: filas.length });
+  }
+  const { error: e1 } = await supabase.from("grilla_mensajes").delete().gte("dia", 0);
+  if (await fallo(e1)) return;
+  if (filas.length) {
+    const { error } = await supabase.from("grilla_mensajes").insert(filas);
+    if (await fallo(error)) return;
+  }
+  refrescar();
+  await avisar("Grilla guardada.", "verde");
+}
+
+// ---------- Fechas de la agrupación ----------
+export async function guardarEvento(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  const titulo = txt(fd, "titulo");
+  if (!titulo) return void (await avisar("Poné qué es."));
+  const datos = { titulo, fecha: txt(fd, "fecha"), hora: txt(fd, "hora"), lugar: txt(fd, "lugar"), origen: txt(fd, "origen") ?? "Agrupación", nota: txt(fd, "nota") };
+  const { error } = id ? await supabase.from("eventos").update(datos).eq("id", id) : await supabase.from("eventos").insert(datos);
+  if (await fallo(error)) return;
+  refrescar();
+  await avisar(id ? "Fecha actualizada." : "Fecha cargada.", "verde");
+}
+
+export async function borrarEvento(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  if (!id) return;
+  const { error } = await supabase.from("eventos").delete().eq("id", id);
+  if (await fallo(error)) return;
+  refrescar();
 }

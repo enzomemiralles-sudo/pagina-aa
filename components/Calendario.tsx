@@ -8,17 +8,17 @@ import { moverEnCalendario } from "@/app/(app)/acciones";
 export type ItemCal = {
   clave: string;
   id: string;
-  tipo: "tarea" | "actividad" | "reunion" | "otra";
+  tipo: "tarea" | "actividad" | "reunion" | "evento" | "otra";
   fecha: string;
   titulo: string;
   /** Color de estado (código de la página) o "reunion"/"otra" para lo estructural. */
-  color: "rojo" | "ambar" | "azul" | "verde" | "gris" | "reunion" | "otra";
+  color: "rojo" | "ambar" | "azul" | "verde" | "gris" | "reunion" | "evento" | "otra";
   estado: string;
   href?: string;
   movible: boolean;
 };
 
-const ETIQUETA_TIPO: Record<ItemCal["tipo"], string> = { tarea: "Tarea", actividad: "Actividad", reunion: "Reunión", otra: "Otra comisión" };
+const ETIQUETA_TIPO: Record<ItemCal["tipo"], string> = { tarea: "Tarea", actividad: "Actividad", reunion: "Reunión", evento: "Agrupación", otra: "Otra comisión" };
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MAX_POR_DIA = 4;
 
@@ -52,7 +52,7 @@ export function Calendario({
     l.push(i);
     porDia.set(i.fecha, l);
   }
-  const orden = { reunion: 0, actividad: 1, tarea: 2, otra: 3 } as const;
+  const orden = { evento: 0, reunion: 1, actividad: 2, tarea: 3, otra: 4 } as const;
 
   const elegir = (dia: string) => router.push(`/calendario?${base}&dia=${dia}`, { scroll: false });
 

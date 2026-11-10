@@ -5,7 +5,6 @@ import { listasBase, nombreDe, ordenarTareas, SELECT_TAREA, type Tarea } from "@
 import { ESTADO_ACTIVIDAD, GUIAS, IDENTIDAD, PLANTILLAS, SEGUIMIENTO, TIPO_ACTIVIDAD, TIPO_ENLACE } from "@/lib/etiquetas";
 import { fechaDia, fechaLarga, hoyBA } from "@/lib/fechas";
 import { actividadEnFrase, completar, faltantes, VARIABLES, type DatosMensaje } from "@/lib/mensajes";
-import { Planilla } from "@/components/Planilla";
 import { ChipDe } from "@/components/Chip";
 import { Confirmar, Copiar, Enviar } from "@/components/Cliente";
 import { FormActividad } from "@/components/Formularios";
@@ -13,7 +12,8 @@ import { TablaTareas } from "@/components/TablaTareas";
 import { AgregarTarea } from "@/components/AgregarTarea";
 import { BotonesSeguimiento } from "@/components/Seguimiento";
 import { IconoDocumento } from "@/components/Iconos";
-import { agregarDocumento, borrarDocumento, cambiarEstado, cargarPlantilla, editarActividad, guardarCierre, guardarGuia } from "../../acciones";
+import { agregarDocumento, armarPlanComunicacion, borrarDocumento, cambiarEstado, cargarPlantilla, editarActividad, guardarCierre, guardarGuia, guardarOpcionForm } from "../../acciones";
+import { opcionForm } from "@/lib/contactos";
 
 const SIGUIENTE: Record<string, { estado: string; texto: string }> = {
   aprobada: { estado: "en_organizacion", texto: "Empezar a organizar" },
@@ -40,6 +40,7 @@ export default async function Actividad({ params, searchParams }: { params: Prom
     a.linea_id ? supabase.from("lineas").select("nombre").eq("id", a.linea_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("mensajes_modelo").select("id, titulo, texto, para").in("para", [a.tipo, "general"]).order("orden"),
   ]);
+  const { data: formGeneral } = await supabase.from("documentos").select("url").eq("tipo", "inscripcion").is("actividad_id", null).is("proyecto_id", null).limit(1).maybeSingle();
 
   const puedeEditar = yo.esCoord || a.responsable_id === yo.id || a.created_by === yo.id;
   const todas = (tareas.data ?? []) as unknown as Tarea[];
@@ -77,10 +78,11 @@ export default async function Actividad({ params, searchParams }: { params: Prom
     ...m,
     listo: completar(m.texto, datos),
     falta: faltantes(m.texto, datos),
-    paraPlanilla: completar(m.texto.replace(/\{(nombre|yo)\}/g, "\u0000$1\u0000"), datos).replace(/\u0000(nombre|yo)\u0000/g, "{$1}"),
   }));
   const tiposUtiles = a.tipo === "charla" ? ["inscripcion", "planilla", "zoom", "encuesta"] : a.tipo === "visita" ? ["inscripcion", "planilla", "grupo", "encuesta"] : [];
   const faltanLinks = tiposUtiles.filter((t) => !linkDe(t));
+  const opcion = a.opcion_form ?? opcionForm(a.fecha, a.hora, a.nombre);
+  const tienePlan = todas.some((t) => t.canal);
   const mostrarCierre = ["realizada", "cerrada"].includes(a.estado) || (a.fecha && a.fecha < hoyBA());
 
   return (
@@ -188,12 +190,6 @@ export default async function Actividad({ params, searchParams }: { params: Prom
                   </div>
                 ))}
               </div>
-              <details>
-                <summary>Fórmulas para la planilla de inscriptos</summary>
-                <div style={{ paddingTop: 10 }}>
-                  <Planilla mensajes={mensajes.filter((m) => m.texto.includes("{nombre}") || m.texto.includes("{yo}")).map((m) => ({ titulo: m.titulo, texto: m.paraPlanilla }))} cupo={a.cupo ?? 30} />
-                </div>
-              </details>
             </section>
           )}
 
@@ -220,6 +216,42 @@ export default async function Actividad({ params, searchParams }: { params: Prom
         </div>
 
         <div className="col-lateral">
+          <section className="tarjeta" aria-labelledby="ins-t">
+            <h2 id="ins-t">Inscripción y difusión</h2>
+            <div className="campo">
+              <span className="etiqueta">Opción para el Form de actividades</span>
+              <code className="formula" style={{ background: "var(--gris-f)", color: "var(--tinta)" }}>{opcion}</code>
+              <div className="acciones">
+                <Copiar texto={opcion} className="boton chico">Copiar</Copiar>
+                {formGeneral?.url && <a href={formGeneral.url} target="_blank" rel="noreferrer" className="boton chico">Abrir el Form ↗</a>}
+              </div>
+              {puedeEditar && (
+                <details>
+                  <summary className="chico">Cambiar el texto</summary>
+                  <form action={guardarOpcionForm} className="formulario" style={{ paddingTop: 6, gap: 8 }}>
+                    <input type="hidden" name="id" value={id} />
+                    <label className="oculto" htmlFor="opcion_form">Texto de la opción</label>
+                    <input id="opcion_form" name="opcion_form" type="text" defaultValue={opcion} />
+                    <Enviar className="boton chico">Guardar</Enviar>
+                  </form>
+                </details>
+              )}
+            </div>
+            <div className="acciones">
+              <Link href={`/contactos?vista=repartir&actividad=${id}`} className="boton primario chico">Repartir contactos</Link>
+              {tienePlan ? (
+                <Link href="/comunicacion" className="boton chico">Ver plan de comunicación</Link>
+              ) : (
+                puedeEditar && (
+                  <form action={armarPlanComunicacion} className="en-linea">
+                    <input type="hidden" name="id" value={id} />
+                    <Enviar className="boton chico" pendiente="…">Armar plan de comunicación</Enviar>
+                  </form>
+                )
+              )}
+            </div>
+          </section>
+
           <section className="tarjeta" aria-labelledby="dat-t">
             <h2 id="dat-t">Datos</h2>
             <dl className="datos">

@@ -335,3 +335,13 @@ insert into public.lineas (nombre, fundamento, orden) values
 -- actividades: + guia (protocolo y speech del día) + cupo.
 -- mensajes_modelo: titulo, para (visita|charla|reunion|general), texto con {variables}. Leen y editan miembros; borra coordinación.
 -- ddo: comision, semana (lunes), texto pegado tal cual (único por comisión y semana). Solo coordinación.
+-- ---------- 10/11/2026 (b) · contactos_comunicacion_eventos ----------
+-- tareas: + enlace (ruta interna, p. ej. /contactos/b/…) + canal (form|posteo|historia|reel|otro: piezas de comunicación).
+-- actividades: + opcion_form (texto de la opción en el Form de actividades: "5/11 • 18 HS | NOMBRE").
+-- grilla_mensajes (dia 0-6, nomina_id, suplente): quién contacta cada día. Leen miembros; editan coordinación o Columna.
+-- repartos: actividad, titulo, fecha_contacto, mensaje, total, creado_por, purgado. Leen miembros; crea cualquier miembro (como creador).
+-- bloques: reparto, numero (B1…), nomina_id, contactos jsonb [{n, nombre, tel}], enviados int[], listo, tarea_id.
+--   Ven y editan: coordinación, quien repartió (private.reparti) y el asignado (private.es_mi_nomina);
+--   trigger proteger_bloque: el asignado solo marca enviados / listo.
+-- pg_cron 'purgar-contactos' (todos los días 9:15 UTC): private.purgar_contactos() vacía los contactos 7 días después del día de contacto.
+-- eventos: fechas de la agrupación (fecha vacía = a confirmar), origen (Agrupación, JUP, comisión…). Leen y cargan miembros; editan coordinación o quien la cargó.

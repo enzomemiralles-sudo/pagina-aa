@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconoCalendario, IconoCandado, IconoComision, IconoDocumento, IconoEnlace, IconoInicio, IconoMas, IconoPersonas, IconoReloj, IconoReunion, IconoTilde } from "./Iconos";
+import { IconoCalendario, IconoCandado, IconoMensaje, IconoMegafono, IconoComision, IconoDocumento, IconoEnlace, IconoInicio, IconoMas, IconoPersonas, IconoReloj, IconoReunion, IconoTilde } from "./Iconos";
 
 type Props = {
   nombre: string;
@@ -41,6 +41,12 @@ export function Menu({ nombre, rol, esCoord, esResponsable, esColumna, llevaAsis
         </Link>
         <Link href="/reuniones" aria-current={activo("/reuniones")}>
           <IconoReunion size={19} /> Reuniones
+        </Link>
+        <Link href="/contactos" aria-current={activo("/contactos")}>
+          <IconoMensaje size={19} /> Contactos
+        </Link>
+        <Link href="/comunicacion" aria-current={activo("/comunicacion")}>
+          <IconoMegafono size={19} /> Comunicación
         </Link>
         {llevaAsistencia && (
           <Link href="/columna" aria-current={activo("/columna")}>

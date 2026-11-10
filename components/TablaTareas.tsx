@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cambiarEstadoTarea } from "@/app/(app)/acciones";
-import { ESTADO_TAREA } from "@/lib/etiquetas";
+import { CANAL, ESTADO_TAREA } from "@/lib/etiquetas";
 import { vencimiento } from "@/lib/fechas";
 import { contextoTarea, nombreDe, type Persona, type Tarea } from "@/lib/datos";
 import { ChipDe } from "./Chip";
@@ -60,7 +60,12 @@ export function TablaTareas({ tareas, personas = [], mostrarContexto = true, mos
                   ) : null}
                 </td>
                 <td>
-                  <span className="nombre" style={hecha ? { textDecoration: "line-through", color: "var(--suave)" } : undefined}>{t.titulo}</span>
+                  {t.enlace && !hecha ? (
+                    <Link href={t.enlace} className="nombre">{t.titulo}</Link>
+                  ) : (
+                    <span className="nombre" style={hecha ? { textDecoration: "line-through", color: "var(--suave)" } : undefined}>{t.titulo}</span>
+                  )}
+                  {t.canal && <span className="chip contorno" style={{ marginLeft: 6 }}>{CANAL[t.canal] ?? t.canal}</span>}
                   {t.estado === "trabada" && t.nota_trabada && <div className="chico texto-rojo" style={{ fontWeight: 500 }}>{t.nota_trabada}</div>}
                 </td>
                 {mostrarContexto && (
