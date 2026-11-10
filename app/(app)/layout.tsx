@@ -31,6 +31,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         rol={ROL[yo.rol] ?? yo.rol}
         esCoord={yo.esCoord}
         esResponsable={yo.esResponsable}
+        esColumna={yo.esColumna}
+        llevaAsistencia={yo.llevaAsistencia}
         pendientesAprobacion={pendientes}
         salir={salir}
       />

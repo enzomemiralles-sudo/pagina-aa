@@ -229,3 +229,24 @@ details > summary { cursor: pointer; font-weight: 700; color: var(--azul-oscuro)
   .ocultar-movil { display: none; }
   h1 { font-size: 24px; }
 }
+
+/* ===== Botones de filtro y opciones (sin recargar) ===== */
+.filtros button.filtro { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--gris-b); background: #fff; color: var(--gris); font: 700 13px "Public Sans", system-ui, sans-serif; cursor: pointer; }
+.filtros button.filtro[aria-pressed="true"] { background: var(--azul-oscuro); border-color: var(--azul-oscuro); color: #fff; }
+.botonera { display: inline-flex; flex-wrap: nowrap; gap: 4px; }
+.botonera .opcion { min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1.5px solid var(--borde-campo); background: #fff; color: var(--suave); font: 600 13px "Public Sans", system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.botonera .opcion:hover { border-color: var(--azul-oscuro); }
+.botonera .opcion[aria-pressed="true"].verde { background: var(--verde-f); border-color: var(--verde); color: var(--verde); font-weight: 700; }
+.botonera .opcion[aria-pressed="true"].ambar { background: var(--ambar-f); border-color: var(--ambar); color: var(--ambar); font-weight: 700; }
+.botonera .opcion[aria-pressed="true"].rojo { background: var(--rojo-f); border-color: var(--rojo); color: var(--rojo); font-weight: 700; }
+.tabla-asistencia td { vertical-align: middle; padding-top: 8px; padding-bottom: 8px; }
+.tabla-asistencia tr.fila-insistir td:first-child { box-shadow: inset 4px 0 0 var(--ambar); }
+select.select-verde { border-color: var(--verde); color: var(--verde); font-weight: 700; }
+select.select-ambar { border-color: var(--ambar); color: var(--ambar); font-weight: 700; }
+select.select-rojo { border-color: var(--rojo); color: var(--rojo); font-weight: 700; }
+.historial { display: inline-flex; gap: 3px; }
+.historial .chip { min-width: 24px; justify-content: center; padding: 3px 5px; }
+.linea-tiempo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.linea-tiempo li { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.linea-tiempo strong { font-variant-numeric: tabular-nums; }
+.mensaje { background: var(--gris-f); border-radius: 8px; padding: 10px 12px; }

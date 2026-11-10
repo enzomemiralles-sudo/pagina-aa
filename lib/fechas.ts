@@ -52,6 +52,32 @@ export function fechaCorta(ymd: string | null | undefined): string {
   return `${DIAS[f.getUTCDay()]} ${f.getUTCDate()}/${f.getUTCMonth() + 1}`;
 }
 
+/** "miércoles 25/11" (como lo escribimos en los mensajes) */
+export function fechaDia(ymd: string | null | undefined): string {
+  if (!ymd) return "";
+  const f = aUTC(ymd);
+  return `${DIAS_LARGOS[f.getUTCDay()]} ${f.getUTCDate()}/${f.getUTCMonth() + 1}`;
+}
+
+/** "Miércoles 11/11" (encabezado de día en un DDO) */
+export function fechaDdo(ymd: string): string {
+  const t = fechaDia(ymd);
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** Lunes de la semana (lunes a domingo) de una fecha. */
+export function lunesDe(ymd: string): string {
+  return sumarDias(ymd, -((diaSemana(ymd) + 6) % 7));
+}
+
+/** "noviembre 2026" */
+export function mesTitulo(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return `${MESES[m - 1]} ${y}`;
+}
+
+export const NOMBRES_DIAS = DIAS_LARGOS;
+
 /** "miércoles 4 de noviembre" */
 export function fechaLarga(ymd: string): string {
   const f = aUTC(ymd);

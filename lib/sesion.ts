@@ -5,10 +5,14 @@ import { crearCliente } from "./supabase/server";
 export type Yo = {
   id: string;
   nombre: string;
-  rol: "integrante" | "responsable" | "seguimiento";
+  rol: "integrante" | "responsable" | "seguimiento" | "columna";
   estado: "pendiente" | "activo" | "en_pausa" | "baja";
   esCoord: boolean;
   esResponsable: boolean;
+  /** Columna: releva la asistencia a las reuniones (no administra). */
+  esColumna: boolean;
+  /** Coordinación o Columna: lleva la asistencia y la logística de la reunión. */
+  llevaAsistencia: boolean;
 };
 
 /** Devuelve el cliente y la persona logueada. Redirige si no está logueada o no fue aprobada. */
@@ -27,13 +31,17 @@ export const requerirMiembro = cache(async () => {
 
   if (!data || data.estado === "pendiente" || data.estado === "baja") redirect("/pendiente");
 
+  const esCoord = data.estado === "activo" && (data.rol === "responsable" || data.rol === "seguimiento");
+  const esColumna = data.estado === "activo" && data.rol === "columna";
   const yo: Yo = {
     id: data.id,
     nombre: data.nombre,
     rol: data.rol,
     estado: data.estado,
-    esCoord: data.estado === "activo" && (data.rol === "responsable" || data.rol === "seguimiento"),
+    esCoord,
     esResponsable: data.estado === "activo" && data.rol === "responsable",
+    esColumna,
+    llevaAsistencia: esCoord || esColumna,
   };
   return { supabase, yo };
 });
@@ -41,5 +49,11 @@ export const requerirMiembro = cache(async () => {
 export async function requerirCoord() {
   const r = await requerirMiembro();
   if (!r.yo.esCoord) redirect("/");
+  return r;
+}
+
+export async function requerirAsistencia() {
+  const r = await requerirMiembro();
+  if (!r.yo.llevaAsistencia) redirect("/");
   return r;
 }

@@ -56,6 +56,40 @@ export const ROL: Record<string, string> = {
   integrante: "Integrante",
   responsable: "Responsable de AA",
   seguimiento: "Seguimiento",
+  columna: "Columna",
+};
+
+// Asistencia a la reunión: lo que responde antes y cómo llegó el día.
+export const RESPUESTA: Record<string, Etiqueta> = {
+  sin_respuesta: { texto: "Sin respuesta", color: "gris" },
+  viene: { texto: "Viene", color: "verde" },
+  no_sabe: { texto: "No sabe", color: "ambar" },
+  no_viene: { texto: "No viene", color: "rojo" },
+};
+
+export const LLEGADA: Record<string, Etiqueta> = {
+  a_horario: { texto: "Llegó a horario", color: "verde" },
+  tarde: { texto: "Llegó tarde", color: "ambar" },
+  no_vino: { texto: "No vino", color: "rojo" },
+};
+
+// Para qué sirve cada enlace. Los mensajes modelo usan el de cada tipo.
+export const TIPO_ENLACE: Record<string, { texto: string; ayuda: string }> = {
+  inscripcion: { texto: "Form de inscripción", ayuda: "Google Forms donde se anota la gente" },
+  planilla: { texto: "Planilla de inscriptos", ayuda: "Google Sheets con las respuestas y el reparto" },
+  grupo: { texto: "Grupo de WhatsApp", ayuda: "Link de invitación al grupo de la actividad" },
+  zoom: { texto: "Zoom", ayuda: "Link de la reunión de Zoom" },
+  encuesta: { texto: "Encuesta posterior", ayuda: "Google Forms para después de la actividad" },
+  carpeta: { texto: "Carpeta de Drive", ayuda: "Documentos, fotos y videos" },
+  difusion: { texto: "Difusión", ayuda: "Posteo, historia, reel o diseño en Canva" },
+  otro: { texto: "Otro", ayuda: "" },
+};
+
+export const PARA_MENSAJE: Record<string, string> = {
+  visita: "Visitas",
+  charla: "Charlas",
+  reunion: "Reunión de comisión",
+  general: "General",
 };
 
 export const ESTADO_INTEGRANTE: Record<string, Etiqueta> = {
@@ -87,30 +121,78 @@ export const TIPO_IDEA: Record<string, string> = {
   oportunidad: "Una oportunidad",
 };
 
-// Tareas sugeridas por tipo de actividad (Documento Maestro, 8.4). Se cargan editables.
-export const PLANTILLAS: Record<string, string[]> = {
+// Tareas sugeridas por tipo de actividad (Documento Maestro 8.4, ajustado con cómo hacemos las visitas). Se cargan editables.
+// El número es cuántos días antes de la actividad vence (si la actividad tiene fecha).
+export const PLANTILLAS: Record<string, [string, number][]> = {
   charla: [
-    "Definir temática y criterio del ciclo",
-    "Identificar y contactar orador",
-    "Confirmar disponibilidad y datos del expositor",
-    "Crear enlace de Zoom",
-    "Preparar mensaje de difusión y mensaje con enlace",
-    "Organizar grilla de distribución de contactos",
-    "Preparar presentación del orador",
-    "Obtener y organizar grabación",
-    "Publicar en YouTube cuando corresponda",
-    "Registrar contacto, participantes y balance",
+    ["Preguntar a compañeros que sepan del tema por posibles oradores", 21],
+    ["Definir con el orador los temas de la charla", 14],
+    ["Confirmar fecha (a la tarde), horario y datos del orador", 14],
+    ["Crear el link de Zoom", 12],
+    ["Armar el Form de inscripción y la planilla de contactos", 12],
+    ["Difundir junto con las otras actividades del ciclo (posteo e historias)", 10],
+    ["Repartir inscriptos y mandar el mensaje con el link", 2],
+    ["Mandar el recordatorio el día de la charla", 0],
+    ["Preparar la presentación del orador", 1],
+    ["Grabar la charla y guardar la grabación", 0],
+    ["Mandar la encuesta y cargar el cierre", -2],
   ],
   visita: [
-    "Definir institución, objetivo y fecha",
-    "Contactar institución y confirmar condiciones",
-    "Relevar requisitos de ingreso",
-    "Crear formulario y controlar inscriptos",
-    "Distribuir contactos y confirmar asistencia",
-    "Preparar lista de ingreso",
-    "Definir punto de encuentro y horarios",
-    "Designar responsables de coordinación presencial",
-    "Registrar asistencia efectiva",
-    "Agradecer, conservar el vínculo y cerrar la actividad",
+    ["Pedir turno a la institución (2 semanas antes: qué día, mañana o tarde)", 14],
+    ["Confirmar fecha, horario, cupo y requisitos de ingreso", 12],
+    ["Armar el Form de inscripción y la planilla de contactos", 12],
+    ["Publicar la convocatoria en Instagram", 10],
+    ["Programar historias de recordatorio cada pocos días", 9],
+    ["Decidir si hacemos reel", 9],
+    ["Crear el grupo de WhatsApp de la visita (con foto de perfil temática)", 8],
+    ["Definir los dos responsables: contacto (habla y entra a avisar, lleva DNI) y registro (graba para Instagram)", 7],
+    ["Repartir inscriptos y mandar la confirmación con el link del grupo", 5],
+    ["Preparar el speech y pasárselo a los compañeros que van", 3],
+    ["Recordatorio el día anterior y avisar si se liberaron lugares", 1],
+    ["Pasarle el número final a la institución", 1],
+    ["Mandar la encuesta de satisfacción", -1],
+    ["Subir el material a Instagram y cargar el cierre", -3],
   ],
+};
+
+// Guía para el día, editable en cada actividad. Se puede abrir en el celular.
+export const GUIAS: Record<string, string> = {
+  visita: `ANTES DE ENTRAR
+1. Nos juntamos todos en la esquina, no en la puerta. Punto de encuentro: ___
+2. Mientras esperamos, un compañero da el speech (abajo).
+3. Quien hace de contacto se acerca solo a la puerta, avisa que llegó el grupo de Nexo y entra a confirmar. Lleva DNI por las dudas.
+4. El resto espera en la esquina hasta que el contacto avise.
+
+SPEECH (cada uno lo adapta y lo tiene a mano)
+"Hola, soy ___ de Nexo. Venimos a conocer ___ porque ___. Mi parte favorita del recorrido es ___. Háganle preguntas a quien nos toque de guía: así la experiencia es más amena y mucho más rica."
+
+ADENTRO
+- El guía da una introducción de 20 a 30 minutos y después recorremos.
+- No se pueden sacar fotos (el guía lo avisa). Lo respetamos todos.
+- Animamos a la gente a preguntar.
+
+RESPONSABLES
+- Contacto (habla con la gente y entra a avisar): ___
+- Registro (videos para Instagram, donde se permita): ___
+
+DESPUÉS
+- Agradecer al guía y a la institución.
+- Mandar la encuesta al grupo de WhatsApp.
+- Contar cuántos fuimos y cargar el cierre.`,
+  charla: `ANTES
+- Probar el Zoom con el orador 15 minutos antes.
+- Tener a mano la presentación del orador.
+- Pedirle permiso para grabar.
+
+AL ARRANCAR (speech)
+"Hola, soy ___ de Nexo. Hoy nos acompaña ___, que ___. Vamos a hablar de ___. Al final hay espacio para preguntas: déjenlas en el chat."
+
+DURANTE
+- Una persona modera el chat y junta las preguntas.
+- Grabamos.
+
+DESPUÉS
+- Agradecer al orador.
+- Mandar la encuesta.
+- Guardar la grabación y cargar el cierre.`,
 };

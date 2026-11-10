@@ -49,7 +49,7 @@ export default async function Coordinacion() {
     supabase.from("reuniones").select("id, fecha, hora, estado").neq("estado", "cerrada").gte("fecha", hoy).order("fecha").limit(1).maybeSingle(),
   ]);
 
-  const activos = personas.filter((p) => p.estado === "activo");
+  const activos = personas.filter((p) => p.estado === "activo" && p.rol !== "columna");
   const actualizaron = new Set((acts.data ?? []).map((a) => a.integrante_id));
   const faltan = activos.filter((p) => !actualizaron.has(p.id));
   const necesidades = (acts.data ?? []).filter((a) => a.necesito);

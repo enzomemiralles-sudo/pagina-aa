@@ -4,6 +4,9 @@ import { estadoCierre, fechaLarga, haceCuanto, hoyBA, hoyTitulo, semanaActual } 
 import { ordenarTareas, SELECT_TAREA, type Tarea } from "@/lib/datos";
 import { TablaTareas } from "@/components/TablaTareas";
 import { IconoReloj } from "@/components/Iconos";
+import { Enviar } from "@/components/Cliente";
+import { RESPUESTA } from "@/lib/etiquetas";
+import { responderAsistencia } from "./acciones";
 
 export default async function Inicio() {
   const { supabase, yo } = await requerirMiembro();
@@ -34,9 +37,22 @@ export default async function Inicio() {
   const pendSeguimiento = seguimientos ? seguimientos.reduce((s, r) => s + (r.count ?? 0), 0) : 0;
 
   let temas = 0;
+  let miNomina: string | null = null;
+  let miRespuesta: { respuesta: string; motivo: string | null } | null = null;
+  let vienen = 0;
   if (reunion.data) {
-    const { count } = await supabase.from("reunion_temas").select("id", { count: "exact", head: true }).eq("reunion_id", reunion.data.id);
-    temas = count ?? 0;
+    const [t, n, c] = await Promise.all([
+      supabase.from("reunion_temas").select("id", { count: "exact", head: true }).eq("reunion_id", reunion.data.id),
+      supabase.from("nomina").select("id").eq("integrante_id", yo.id).eq("activo", true).maybeSingle(),
+      supabase.rpc("conteo_asistencia", { rid: reunion.data.id }),
+    ]);
+    temas = t.count ?? 0;
+    miNomina = n.data?.id ?? null;
+    vienen = ((c.data ?? []) as { respuesta: string; cantidad: number }[]).find((x) => x.respuesta === "viene")?.cantidad ?? 0;
+    if (miNomina) {
+      const { data } = await supabase.from("asistencias").select("respuesta, motivo").eq("reunion_id", reunion.data.id).eq("nomina_id", miNomina).maybeSingle();
+      miRespuesta = data;
+    }
   }
 
   type Nov = { clave: string; texto: React.ReactNode; cuando: string };
@@ -59,7 +75,7 @@ export default async function Inicio() {
         </div>
       </div>
 
-      {!yaActualice && yo.estado === "activo" && (
+      {!yaActualice && yo.estado === "activo" && !yo.esColumna && (
         <div className={`aviso ${cierre === "abierta" ? "gris" : "ambar"}`} role="status">
           <IconoReloj size={20} />
           <span>
@@ -86,8 +102,9 @@ export default async function Inicio() {
               <span className="suave chico">{tareas.length} abiertas</span>
             </div>
             <TablaTareas tareas={tareas} vacio="No tenés tareas abiertas." />
-            <div className="tarjeta-pie">
+            <div className="tarjeta-pie acciones" style={{ justifyContent: "space-between" }}>
               <Link href="/cargar?tipo=tarea" className="boton texto">+ Agregar tarea</Link>
+              <Link href="/calendario" className="boton texto">Ver en mi calendario</Link>
             </div>
           </div>
         </section>
@@ -100,10 +117,37 @@ export default async function Inicio() {
                   {reunion.data.fecha === hoy ? "Hoy" : fechaLarga(reunion.data.fecha)} · {reunion.data.hora}
                 </p>
                 <h2 id="reu-t">Reunión de comisión</h2>
-                <p className="suave chico">{temas ? `Punteo con ${temas} ${temas === 1 ? "tema" : "temas"}.` : "Todavía no hay punteo."}</p>
-                <Link href={`/reuniones/${reunion.data.id}`} className="boton primario" style={{ alignSelf: "flex-start" }}>
-                  Ver punteo
-                </Link>
+                <p className="suave chico">
+                  {temas ? `Punteo con ${temas} ${temas === 1 ? "tema" : "temas"}.` : "Todavía no hay punteo."}
+                  {vienen > 0 && ` Confirmaron ${vienen}.`} 18:15 en la puerta del aula, 18:30 arrancamos.
+                </p>
+                {miNomina && (
+                  <div className="formulario" style={{ gap: 8 }}>
+                    {miRespuesta && miRespuesta.respuesta !== "sin_respuesta" ? (
+                      <p className="chico">
+                        Respondiste: <span className={`chip ${RESPUESTA[miRespuesta.respuesta]?.color ?? "gris"}`}>{RESPUESTA[miRespuesta.respuesta]?.texto}</span>
+                      </p>
+                    ) : (
+                      <p className="chico" style={{ fontWeight: 700 }}>¿Venís?</p>
+                    )}
+                    <form action={responderAsistencia} className="formulario" style={{ gap: 8 }}>
+                      <input type="hidden" name="reunion_id" value={reunion.data.id} />
+                      <input type="hidden" name="nomina_id" value={miNomina} />
+                      <div className="acciones">
+                        <Enviar name="respuesta" value="viene" className="boton verde chico" pendiente="…">Voy</Enviar>
+                        <Enviar name="respuesta" value="no_viene" className="boton chico" pendiente="…">No puedo</Enviar>
+                      </div>
+                      <label className="oculto" htmlFor="motivo-inicio">Si no podés, contá por qué</label>
+                      <input id="motivo-inicio" name="motivo" type="text" placeholder="Si no podés, ¿por qué? (opcional)" defaultValue={miRespuesta?.motivo ?? ""} style={{ minHeight: 36 }} />
+                    </form>
+                  </div>
+                )}
+                <div className="acciones">
+                  <Link href={`/reuniones/${reunion.data.id}`} className="boton primario chico">
+                    Ver punteo
+                  </Link>
+                  {yo.llevaAsistencia && <Link href="/columna" className="boton chico">Asistencia</Link>}
+                </div>
               </>
             ) : (
               <>

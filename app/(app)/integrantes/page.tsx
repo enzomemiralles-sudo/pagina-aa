@@ -50,7 +50,17 @@ export default async function Integrantes() {
                     <td className="suave">{haceCuanto(f.created_at)}</td>
                     <td className="nowrap">
                       <div className="acciones">
-                        {boton(f.id, "estado", "activo", "Aprobar", "boton primario chico")}
+                        <form action={cambiarIntegrante} style={{ display: "flex", gap: 6 }}>
+                          <input type="hidden" name="id" value={f.id} />
+                          <input type="hidden" name="estado" value="activo" />
+                          <label htmlFor={`rolp-${f.id}`} className="oculto">Rol de {f.nombre}</label>
+                          <select id={`rolp-${f.id}`} name="rol" defaultValue="integrante" style={{ minHeight: 34, width: "auto" }}>
+                            <option value="integrante">Integrante</option>
+                            <option value="columna">Columna</option>
+                            <option value="seguimiento">Seguimiento</option>
+                          </select>
+                          <Enviar className="boton primario chico" pendiente="…">Aprobar</Enviar>
+                        </form>
                         <form action={cambiarIntegrante} className="en-linea">
                           <input type="hidden" name="id" value={f.id} />
                           <input type="hidden" name="estado" value="baja" />
@@ -114,7 +124,7 @@ export default async function Integrantes() {
           </table>
         </div>
         <p className="vacio" style={{ paddingTop: 0 }}>
-          “En pausa” sigue entrando y viendo todo, pero no cuenta en las actualizaciones que faltan. Seguimiento ve la coordinación, pero no esta pantalla.
+          “En pausa” sigue entrando y viendo todo, pero no cuenta en las actualizaciones que faltan. Seguimiento ve la coordinación, pero no esta pantalla. Columna lleva la asistencia a las reuniones: ve la comisión, no administra y no carga actualización semanal.
         </p>
       </section>
     </>
