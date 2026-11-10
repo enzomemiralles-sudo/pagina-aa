@@ -87,3 +87,8 @@ export function formulaLugar(c: Columnas, cupo: number, sep: ";" | ","): string 
 }
 
 export const ESTADOS_PLANILLA = ["Sin escribir", "Escrito", "Confirmó", "Canceló", "Asistió", "No vino"];
+
+/** "Visita a la Morgue Judicial" → "visita a la Morgue Judicial", para que entre en "Te confirmo para la {actividad}". */
+export function actividadEnFrase(nombre: string): string {
+  return /^(visita|charla|jornada|presentaci[oó]n|actividad|taller|encuentro)\b/i.test(nombre) ? nombre.charAt(0).toLowerCase() + nombre.slice(1) : nombre;
+}

@@ -2,16 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requerirMiembro } from "@/lib/sesion";
 import { listasBase, nombreDe, ordenarTareas, SELECT_TAREA, type Tarea } from "@/lib/datos";
-import { ESTADO_ACTIVIDAD, IDENTIDAD, PLANTILLAS, SEGUIMIENTO, TIPO_ACTIVIDAD } from "@/lib/etiquetas";
-import { fechaLarga, hoyBA } from "@/lib/fechas";
+import { ESTADO_ACTIVIDAD, GUIAS, IDENTIDAD, PLANTILLAS, SEGUIMIENTO, TIPO_ACTIVIDAD, TIPO_ENLACE } from "@/lib/etiquetas";
+import { fechaDia, fechaLarga, hoyBA } from "@/lib/fechas";
+import { actividadEnFrase, completar, faltantes, VARIABLES, type DatosMensaje } from "@/lib/mensajes";
+import { Planilla } from "@/components/Planilla";
 import { ChipDe } from "@/components/Chip";
-import { Confirmar, Enviar } from "@/components/Cliente";
+import { Confirmar, Copiar, Enviar } from "@/components/Cliente";
 import { FormActividad } from "@/components/Formularios";
 import { TablaTareas } from "@/components/TablaTareas";
 import { AgregarTarea } from "@/components/AgregarTarea";
 import { BotonesSeguimiento } from "@/components/Seguimiento";
 import { IconoDocumento } from "@/components/Iconos";
-import { agregarDocumento, borrarDocumento, cambiarEstado, cargarPlantilla, editarActividad, guardarCierre } from "../../acciones";
+import { agregarDocumento, borrarDocumento, cambiarEstado, cargarPlantilla, editarActividad, guardarCierre, guardarGuia } from "../../acciones";
 
 const SIGUIENTE: Record<string, { estado: string; texto: string }> = {
   aprobada: { estado: "en_organizacion", texto: "Empezar a organizar" },
@@ -28,14 +30,15 @@ export default async function Actividad({ params, searchParams }: { params: Prom
   const { data: a } = await supabase.from("actividades").select("*").eq("id", id).maybeSingle();
   if (!a) notFound();
 
-  const [listas, tareas, decisiones, documentos, proyecto, mesa, linea] = await Promise.all([
+  const [listas, tareas, decisiones, documentos, proyecto, mesa, linea, mensajesR] = await Promise.all([
     listasBase(supabase),
     supabase.from("tareas").select(SELECT_TAREA).eq("actividad_id", id).neq("estado", "cancelada"),
     supabase.from("decisiones").select("id, texto, seguimiento, reuniones(fecha)").eq("actividad_id", id).order("created_at", { ascending: false }),
-    supabase.from("documentos").select("id, titulo, url, created_by").eq("actividad_id", id).order("created_at"),
+    supabase.from("documentos").select("id, titulo, url, tipo, created_by").eq("actividad_id", id).order("created_at"),
     a.proyecto_id ? supabase.from("proyectos").select("id, nombre").eq("id", a.proyecto_id).maybeSingle() : Promise.resolve({ data: null }),
     a.mesa_id ? supabase.from("mesas").select("nombre").eq("id", a.mesa_id).maybeSingle() : Promise.resolve({ data: null }),
     a.linea_id ? supabase.from("lineas").select("nombre").eq("id", a.linea_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("mensajes_modelo").select("id, titulo, texto, para").in("para", [a.tipo, "general"]).order("orden"),
   ]);
 
   const puedeEditar = yo.esCoord || a.responsable_id === yo.id || a.created_by === yo.id;
@@ -61,6 +64,23 @@ export default async function Actividad({ params, searchParams }: { params: Prom
     </form>
   );
   const siguiente = SIGUIENTE[a.estado];
+
+  // Mensajes modelo completos con los datos de esta actividad.
+  const docs = (documentos.data ?? []) as { id: string; titulo: string; url: string; tipo: string; created_by: string | null }[];
+  const linkDe = (tipo: string) => docs.find((d) => d.tipo === tipo)?.url ?? null;
+  const datos: DatosMensaje = {
+    actividad: actividadEnFrase(a.nombre), dia: fechaDia(a.fecha), hora: a.hora, lugar: a.lugar,
+    zoom: linkDe("zoom"), grupo: linkDe("grupo"), encuesta: linkDe("encuesta"), inscripcion: linkDe("inscripcion"),
+    yo: yo.nombre.split(" ")[0],
+  };
+  const mensajes = ((mensajesR.data ?? []) as { id: string; titulo: string; texto: string }[]).map((m) => ({
+    ...m,
+    listo: completar(m.texto, datos),
+    falta: faltantes(m.texto, datos),
+    paraPlanilla: completar(m.texto.replace(/\{(nombre|yo)\}/g, "\u0000$1\u0000"), datos).replace(/\u0000(nombre|yo)\u0000/g, "{$1}"),
+  }));
+  const tiposUtiles = a.tipo === "charla" ? ["inscripcion", "planilla", "zoom", "encuesta"] : a.tipo === "visita" ? ["inscripcion", "planilla", "grupo", "encuesta"] : [];
+  const faltanLinks = tiposUtiles.filter((t) => !linkDe(t));
   const mostrarCierre = ["realizada", "cerrada"].includes(a.estado) || (a.fecha && a.fecha < hoyBA());
 
   return (
@@ -129,6 +149,54 @@ export default async function Actividad({ params, searchParams }: { params: Prom
             </div>
           </section>
 
+          <section className="tarjeta" aria-labelledby="guia-t">
+            <div className="encabezado" style={{ alignItems: "center" }}>
+              <h2 id="guia-t">Guía para el día</h2>
+              {a.guia && <Link href={`/actividades/${id}/guia`} className="boton chico">Abrir en el celular</Link>}
+            </div>
+            {a.guia ? (
+              <p className="guia-texto">{a.guia}</p>
+            ) : (
+              <p className="suave">Protocolo, speech y responsables, para tenerlo a mano el día de la actividad.</p>
+            )}
+            {puedeEditar && (
+              <details>
+                <summary>{a.guia ? "Editar la guía" : "Escribir la guía"}</summary>
+                <form action={guardarGuia} className="formulario" style={{ paddingTop: 8 }}>
+                  <input type="hidden" name="id" value={id} />
+                  <label htmlFor="guia" className="oculto">Guía</label>
+                  <textarea id="guia" name="guia" rows={16} defaultValue={a.guia ?? GUIAS[a.tipo] ?? ""} />
+                  <Enviar className="boton primario chico">Guardar guía</Enviar>
+                </form>
+              </details>
+            )}
+          </section>
+
+          {mensajes.length > 0 && (
+            <section className="tarjeta" aria-labelledby="msj-t">
+              <h2 id="msj-t">Mensajes</h2>
+              <p className="suave chico">Completos con los datos de la actividad. Los modelos se editan en <Link href="/herramientas">Herramientas</Link>.</p>
+              <div className="grilla">
+                {mensajes.map((m) => (
+                  <div key={m.id} className="tarjeta" style={{ gap: 8 }}>
+                    <strong>{m.titulo}</strong>
+                    <p className="texto-largo chico mensaje">{m.listo}</p>
+                    {m.falta.length > 0 && (
+                      <p className="chico"><span className="chip ambar">Falta</span> {m.falta.map((f) => VARIABLES[f].toLowerCase()).join(", ")}</p>
+                    )}
+                    <div className="acciones"><Copiar texto={m.listo} className="boton chico">Copiar</Copiar></div>
+                  </div>
+                ))}
+              </div>
+              <details>
+                <summary>Fórmulas para la planilla de inscriptos</summary>
+                <div style={{ paddingTop: 10 }}>
+                  <Planilla mensajes={mensajes.filter((m) => m.texto.includes("{nombre}") || m.texto.includes("{yo}")).map((m) => ({ titulo: m.titulo, texto: m.paraPlanilla }))} cupo={a.cupo ?? 30} />
+                </div>
+              </details>
+            </section>
+          )}
+
           {mostrarCierre && (
             <section className="tarjeta" aria-labelledby="cie-t">
               <h2 id="cie-t">Cierre</h2>
@@ -160,6 +228,7 @@ export default async function Actividad({ params, searchParams }: { params: Prom
               <dt>Mesa</dt><dd>{mesa.data?.nombre ?? "Sin mesa"}</dd>
               <dt>Línea</dt><dd>{linea.data?.nombre ?? "Sin línea"}</dd>
               <dt>Se comunica como</dt><dd>{IDENTIDAD[a.identidad] ?? a.identidad}</dd>
+              {a.cupo && <><dt>Cupo</dt><dd>{a.cupo}</dd></>}
             </dl>
           </section>
 
@@ -182,26 +251,38 @@ export default async function Actividad({ params, searchParams }: { params: Prom
           )}
 
           <section className="tarjeta" aria-labelledby="doc-t">
-            <h2 id="doc-t">Documentos y enlaces</h2>
-            {(documentos.data ?? []).map((d) => (
-              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <a href={d.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, flex: 1, minHeight: 36, fontWeight: 600 }}>
+            <h2 id="doc-t">Links</h2>
+            {docs.map((d) => (
+              <div key={d.id} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <a href={d.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 32, fontWeight: 600 }}>
                   <IconoDocumento size={17} /> {d.titulo}
                 </a>
-                {(yo.esCoord || d.created_by === yo.id) && (
-                  <form action={borrarDocumento} className="en-linea">
-                    <input type="hidden" name="id" value={d.id} />
-                    <Confirmar mensaje={`¿Sacar "${d.titulo}" de la lista? El archivo original no se borra.`} className="boton texto chico">Quitar</Confirmar>
-                  </form>
-                )}
+                <span className="acciones" style={{ gap: 4, paddingLeft: 25 }}>
+                  {d.tipo !== "otro" && <span className="chip gris">{TIPO_ENLACE[d.tipo]?.texto}</span>}
+                  {(yo.esCoord || d.created_by === yo.id) && (
+                    <form action={borrarDocumento} className="en-linea">
+                      <input type="hidden" name="id" value={d.id} />
+                      <Confirmar mensaje={`¿Sacar "${d.titulo}" de la lista? El archivo original no se borra.`} className="boton texto chico">Quitar</Confirmar>
+                    </form>
+                  )}
+                </span>
               </div>
             ))}
+            {faltanLinks.length > 0 && (
+              <p className="chico"><span className="chip ambar">Falta</span> {faltanLinks.map((t) => TIPO_ENLACE[t].texto).join(", ")}</p>
+            )}
             <details>
-              <summary>+ Agregar enlace</summary>
+              <summary>+ Agregar link</summary>
               <form action={agregarDocumento} className="formulario" style={{ paddingTop: 8 }}>
                 <input type="hidden" name="actividad_id" value={id} />
-                <div className="campo"><label htmlFor="doc-titulo">Nombre</label><input id="doc-titulo" name="titulo" type="text" placeholder="Zoom, formulario, grabación…" required /></div>
-                <div className="campo"><label htmlFor="doc-url">Enlace</label><input id="doc-url" name="url" type="url" required /></div>
+                <div className="campo">
+                  <label htmlFor="doc-tipo">Qué es</label>
+                  <select id="doc-tipo" name="tipo" defaultValue={faltanLinks[0] ?? "otro"}>
+                    {Object.entries(TIPO_ENLACE).map(([k, v]) => <option key={k} value={k}>{v.texto}</option>)}
+                  </select>
+                </div>
+                <div className="campo"><label htmlFor="doc-titulo">Nombre</label><input id="doc-titulo" name="titulo" type="text" placeholder="Form de inscripción, grupo, Zoom…" required /></div>
+                <div className="campo"><label htmlFor="doc-url">Link</label><input id="doc-url" name="url" type="url" required /></div>
                 <Enviar className="boton primario chico">Agregar</Enviar>
               </form>
             </details>

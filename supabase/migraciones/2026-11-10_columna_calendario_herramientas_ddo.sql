@@ -145,7 +145,7 @@ create trigger tocar before update on public.mensajes_modelo for each row execut
 insert into public.mensajes_modelo (titulo, para, orden, texto) values
 ('Confirmación de la visita', 'visita', 1,
 'Buenas {nombre}, ¿cómo andás?✨
-Te confirmo para la visita a {actividad}. Te esperamos el {dia} a las {hora} en {lugar}.
+Te confirmo para la {actividad}. Te esperamos el {dia} a las {hora} en {lugar}.
 
 Nos juntamos en la esquina y entramos todos juntos. Traé DNI por las dudas.
 
@@ -155,19 +155,19 @@ Si al final no podés venir, avisanos hasta 24 h antes así le damos el lugar a 
 
 Cualquier duda o consulta no dudes en decirme💚'),
 ('Recordatorio del día anterior', 'visita', 2,
-'¡Buenas {nombre}! Te recuerdo que mañana es la visita a {actividad}.
+'¡Buenas {nombre}! Te recuerdo que mañana es la {actividad}.
 🕒 {hora} · nos juntamos en la esquina de {lugar}
 Traé DNI por las dudas. Si al final no podés venir, avisame ahora así le doy el lugar a otra persona💚'),
 ('Se liberó un lugar', 'visita', 3,
 'Buenas {nombre}, ¿cómo va? Acá {yo} de Nexo💚
-Se liberó un lugar para la visita a {actividad} del {dia} a las {hora}. ¿Te sumás? Respondeme hoy así te lo reservo.'),
+Se liberó un lugar para la {actividad} del {dia} a las {hora}. ¿Te sumás? Respondeme hoy así te lo reservo.'),
 ('Encuesta después de la visita', 'visita', 4,
-'¡Gracias por venir a {actividad}! 💚
+'¡Gracias por venir a la {actividad}! 💚
 Nos ayuda mucho saber qué te pareció. Son dos minutos: {encuesta}'),
 ('Link de la charla', 'charla', 1,
 'Buenas, ¿cómo va? Acá {yo} de Nexo💚
 
-Te escribo porque te inscribiste a la charla {actividad}, que la hacemos el {dia}.
+Te escribo porque te inscribiste a la {actividad}, que la hacemos el {dia}.
 
 🕕 {hora}, por Zoom
 🔗 Link para sumarte: {zoom}
@@ -176,12 +176,12 @@ Guardate el link así lo tenés a mano.
 
 ¡Abrazo!'),
 ('Recordatorio del día de la charla', 'charla', 2,
-'¡Hoy es la charla {actividad}! 💚
+'¡Hoy es la {actividad}! 💚
 🕕 {hora}, por Zoom
 🔗 {zoom}
 ¡Te esperamos!'),
 ('Encuesta después de la charla', 'charla', 3,
-'¡Gracias por sumarte a {actividad}! 💚
+'¡Gracias por sumarte a la {actividad}! 💚
 Si nos querés contar qué te pareció, son dos minutos: {encuesta}'),
 ('Convocatoria a la reunión', 'reunion', 1,
 'Buenas compañeros/as, ¿cómo va? 💙
