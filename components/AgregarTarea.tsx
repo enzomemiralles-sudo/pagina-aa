@@ -28,10 +28,17 @@ export function AgregarTarea({ personas, responsableInicial, proyectoId, activid
       <div className="campo">
         <label htmlFor={`q-${sufijo}`}>Quién</label>
         <select id={`q-${sufijo}`} name="responsable_id" defaultValue={responsableInicial ?? ""}>
-          <option value="">Sin asignar</option>
-          {personas.map((p) => (
+          <option value="">Libre (sin asignar)</option>
+          {personas.filter((p) => !p.id.startsWith("n:")).map((p) => (
             <option key={p.id} value={p.id}>{p.nombre}</option>
           ))}
+          {personas.some((p) => p.id.startsWith("n:")) && (
+            <optgroup label="Sin cuenta en la página">
+              {personas.filter((p) => p.id.startsWith("n:")).map((p) => (
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
       <div className="campo">

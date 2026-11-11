@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requerirMiembro } from "@/lib/sesion";
-import { personasActivas, SELECT_TAREA, type Tarea } from "@/lib/datos";
+import { claveResponsable, personasActivas, responsablesPosibles, SELECT_TAREA, type Tarea } from "@/lib/datos";
 import { ESTADO_ACTIVIDAD, ESTADO_REUNION, ESTADO_TAREA, TIPO_ACTIVIDAD } from "@/lib/etiquetas";
 import { fechaCorta, fechaLarga, hoyBA, lunesDe, mesTitulo, sumarDias } from "@/lib/fechas";
 import { leerDdo } from "@/lib/ddo";
@@ -56,6 +56,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   ]);
 
   const tareas = (tareasR.data ?? []) as unknown as Tarea[];
+  const responsables = await responsablesPosibles(supabase, personas);
   const actividades = (actR.data ?? []) as { id: string; nombre: string; tipo: string; estado: string; fecha: string; hora: string | null; responsable_id: string | null; created_by: string | null }[];
   const reuniones = (reuR.data ?? []) as { id: string; fecha: string; hora: string; estado: string }[];
 
@@ -79,7 +80,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
     if (!t.vence) continue;
     const vencida = t.estado !== "hecha" && t.vence < hoy;
     const color = t.estado === "hecha" ? "verde" : t.estado === "trabada" || vencida ? "rojo" : t.vence === hoy ? "ambar" : t.estado === "en_curso" ? "azul" : "gris";
-    const quien = vista === "general" ? personas.find((p) => p.id === t.responsable_id)?.nombre.split(" ")[0] : null;
+    const quien = vista === "general" ? responsables.find((p) => p.id === claveResponsable(t))?.nombre.split(" ")[0] : null;
     items.push({
       clave: `t${t.id}`, id: t.id, tipo: "tarea", fecha: t.vence,
       titulo: `${t.titulo}${quien ? ` · ${quien}` : ""}`,
@@ -203,7 +204,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
 
           {tareasDia.length > 0 && (
             <div className="tarjeta sin-relleno">
-              <TablaTareas tareas={tareasDia} personas={personas} mostrarResponsable={vista === "general"} puedeTildar={(t) => yo.esCoord || t.responsable_id === yo.id || t.created_by === yo.id} />
+              <TablaTareas tareas={tareasDia} personas={responsables} mostrarResponsable={vista === "general"} puedeTildar={(t) => yo.esCoord || t.responsable_id === yo.id || t.created_by === yo.id} />
             </div>
           )}
 
@@ -221,7 +222,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
           {delDia.length === 0 && <p className="suave">No hay nada este día.</p>}
 
           <div className="formulario" style={{ borderTop: "1px solid var(--linea)", paddingTop: 14 }}>
-            <AgregarTarea personas={personas} responsableInicial={yo.id} venceInicial={diaSel} sufijo="cal" />
+            <AgregarTarea personas={responsables} responsableInicial={yo.id} venceInicial={diaSel} sufijo="cal" />
             <div className="acciones">
               <Link href={`/actividades/nueva?fecha=${diaSel}`} className="boton chico">+ Actividad este día</Link>
               {yo.esCoord && !reuniones.some((r) => r.fecha === diaSel) && (

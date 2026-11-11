@@ -133,18 +133,18 @@ export default async function Proyecto({ params, searchParams }: { params: Promi
             <div className="tarjeta-cabecera"><h2 id="tar-t">Tareas</h2><span className="suave chico">{abiertas.length} abiertas</span></div>
             <TablaTareas
               tareas={abiertas}
-              personas={listas.personas}
+              personas={listas.responsables}
               mostrarContexto={false}
               mostrarResponsable
               puedeTildar={(t) => yo.esCoord || puedeEditar || t.responsable_id === yo.id}
               vacio="No hay tareas abiertas."
             />
             <div className="tarjeta-pie" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <AgregarTarea personas={listas.personas} proyectoId={id} sufijo="proy" />
+              <AgregarTarea personas={listas.responsables} proyectoId={id} sufijo="proy" />
               {hechas.length > 0 && (
                 <details>
                   <summary>Hechas · {hechas.length}</summary>
-                  <TablaTareas tareas={hechas} personas={listas.personas} mostrarContexto={false} mostrarResponsable puedeTildar={() => puedeEditar} />
+                  <TablaTareas tareas={hechas} personas={listas.responsables} mostrarContexto={false} mostrarResponsable puedeTildar={() => puedeEditar} />
                 </details>
               )}
             </div>

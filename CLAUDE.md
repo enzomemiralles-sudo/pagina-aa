@@ -47,6 +47,10 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - `lib/etiquetas.ts`: también `PLANTILLAS` (tareas sugeridas con días de anticipación) y `GUIAS` (protocolo de visita y charla).
 - `supabase/esquema.sql`: esquema completo, políticas y triggers (referencia; los cambios se aplican como migraciones nuevas).
 
+## Provisorio (borrar cuando todos tengan cuenta)
+
+- `tareas.responsable_nomina_id`: una tarea puede quedar a nombre de alguien de la lista de compañeros sin cuenta (opción "Sin cuenta en la página" del selector). En el código: `responsablesPosibles`, `claveResponsable`, `separarResponsable` (`lib/datos.ts`). Cuando la persona se vincula en Columna, el trigger `pasar_tareas` le pasa las tareas a su cuenta. Migración: `supabase/migraciones/2026-11-11_tareas_responsable_sin_cuenta.sql`.
+
 ## Pendiente (próximas versiones)
 
 - Inscriptos: falta pasar a Sumables. Leer la planilla directo (API de Google con cuenta de servicio) evitaría el copiar y pegar, pero haría que el servidor lea DNI y datos políticos: por ahora no.

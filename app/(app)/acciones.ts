@@ -8,6 +8,7 @@ import { GUIAS, PLAN_COMUNICACION, PLANTILLAS } from "@/lib/etiquetas";
 import { opcionForm } from "@/lib/contactos";
 import { hoyBA, lunesDe, semanaActual, sumarDias } from "@/lib/fechas";
 import { separarDdos } from "@/lib/ddo";
+import { separarResponsable } from "@/lib/datos";
 
 // ---------- utilidades ----------
 function txt(fd: FormData, k: string): string | null {
@@ -52,9 +53,11 @@ export async function crearTarea(fd: FormData) {
   const { supabase, uid } = await cliente();
   const titulo = txt(fd, "titulo");
   if (!titulo) return void (await avisar("La tarea necesita un título."));
+  // Vacío = sin asignar (tarea libre). "n:<id>" = alguien de la lista sin cuenta (provisorio).
+  const elegido = fd.has("responsable_id") ? txt(fd, "responsable_id") : uid;
   const { error } = await supabase.from("tareas").insert({
     titulo,
-    responsable_id: txt(fd, "responsable_id") ?? uid,
+    ...separarResponsable(elegido),
     vence: txt(fd, "vence"),
     proyecto_id: txt(fd, "proyecto_id"),
     actividad_id: txt(fd, "actividad_id"),
@@ -96,7 +99,7 @@ export async function reasignarTarea(fd: FormData) {
   const { supabase } = await cliente();
   const id = txt(fd, "id");
   if (!id) return;
-  const { error } = await supabase.from("tareas").update({ responsable_id: txt(fd, "responsable_id") }).eq("id", id);
+  const { error } = await supabase.from("tareas").update(separarResponsable(txt(fd, "responsable_id"))).eq("id", id);
   if (await fallo(error)) return;
   refrescar();
 }

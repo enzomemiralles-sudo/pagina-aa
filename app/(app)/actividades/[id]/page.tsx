@@ -134,18 +134,18 @@ export default async function Actividad({ params, searchParams }: { params: Prom
             </div>
             <TablaTareas
               tareas={abiertas}
-              personas={listas.personas}
+              personas={listas.responsables}
               mostrarContexto={false}
               mostrarResponsable
               puedeTildar={(t) => puedeEditar || t.responsable_id === yo.id}
               vacio="No hay tareas abiertas."
             />
             <div className="tarjeta-pie" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <AgregarTarea personas={listas.personas} actividadId={id} responsableInicial={a.responsable_id} sufijo="act" />
+              <AgregarTarea personas={listas.responsables} actividadId={id} responsableInicial={a.responsable_id} sufijo="act" />
               {hechas.length > 0 && (
                 <details>
                   <summary>Hechas · {hechas.length}</summary>
-                  <TablaTareas tareas={hechas} personas={listas.personas} mostrarContexto={false} mostrarResponsable puedeTildar={() => puedeEditar} />
+                  <TablaTareas tareas={hechas} personas={listas.responsables} mostrarContexto={false} mostrarResponsable puedeTildar={() => puedeEditar} />
                 </details>
               )}
             </div>

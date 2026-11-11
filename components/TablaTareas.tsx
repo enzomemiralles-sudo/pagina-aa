@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cambiarEstadoTarea } from "@/app/(app)/acciones";
 import { CANAL, ESTADO_TAREA } from "@/lib/etiquetas";
 import { vencimiento } from "@/lib/fechas";
-import { contextoTarea, nombreDe, type Persona, type Tarea } from "@/lib/datos";
+import { claveResponsable, contextoTarea, nombreDe, type Persona, type Tarea } from "@/lib/datos";
 import { ChipDe } from "./Chip";
 import { IconoAlerta, IconoCheck } from "./Iconos";
 
@@ -79,7 +79,7 @@ export function TablaTareas({ tareas, personas = [], mostrarContexto = true, mos
                     )}
                   </td>
                 )}
-                {mostrarResponsable && <td>{nombreDe(personas, t.responsable_id)}</td>}
+                {mostrarResponsable && <td>{nombreDe(personas, claveResponsable(t))}</td>}
                 <td className="nowrap"><Vence fecha={t.vence} hecha={hecha} /></td>
                 <td><ChipDe mapa={ESTADO_TAREA} valor={t.estado} /></td>
               </tr>

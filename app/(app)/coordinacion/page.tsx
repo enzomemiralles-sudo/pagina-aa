@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { requerirCoord } from "@/lib/sesion";
-import { nombreDe, personasActivas } from "@/lib/datos";
+import { claveResponsable, nombreDe, personasActivas, responsablesPosibles } from "@/lib/datos";
 import { fechaCorta, fechaLarga, hoyBA, semanaActual, sumarDias } from "@/lib/fechas";
 import { Chip } from "@/components/Chip";
 import { Copiar, Enviar } from "@/components/Cliente";
@@ -37,8 +37,8 @@ export default async function Coordinacion() {
   const [personas, acts, trabadas, vencidas, segProy, segAct, segDec, ideas, proyectosActivos, tareasRecientes, proximas, reunion] = await Promise.all([
     personasActivas(supabase),
     supabase.from("actualizaciones").select("integrante_id, necesito, sin_novedades").eq("semana", semana),
-    supabase.from("tareas").select("id, titulo, responsable_id, nota_trabada, proyecto_id, actividad_id, proyectos(nombre), actividades(nombre)").eq("estado", "trabada"),
-    supabase.from("tareas").select("id, titulo, responsable_id, vence, proyecto_id").not("estado", "in", "(hecha,cancelada)").lt("vence", hoy).order("vence"),
+    supabase.from("tareas").select("id, titulo, responsable_id, responsable_nomina_id, nota_trabada, proyecto_id, actividad_id, proyectos(nombre), actividades(nombre)").eq("estado", "trabada"),
+    supabase.from("tareas").select("id, titulo, responsable_id, responsable_nomina_id, vence, proyecto_id").not("estado", "in", "(hecha,cancelada)").lt("vence", hoy).order("vence"),
     supabase.from("proyectos").select("id, nombre, seguimiento_at").eq("seguimiento", "pendiente"),
     supabase.from("actividades").select("id, nombre, seguimiento_at").eq("seguimiento", "pendiente"),
     supabase.from("decisiones").select("id, texto, created_at, reuniones(fecha)").eq("seguimiento", "pendiente"),
@@ -74,6 +74,7 @@ export default async function Coordinacion() {
   }
 
   const recordatorio = `Recordatorio: antes del martes a las 22 h, cada uno carga su actualización semanal. Son dos minutos: ${base}/actualizacion`;
+  const responsables = await responsablesPosibles(supabase, personas);
   const textoPunteo = reunion.data
     ? [
         `*Reunión de comisión · ${fechaLarga(reunion.data.fecha)}, ${reunion.data.hora}*`,
@@ -141,7 +142,7 @@ export default async function Coordinacion() {
                     <li key={t.id}>
                       <div className="cuerpo">
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{t.titulo}</span>
-                        <span className="chico suave">{nombreDe(personas, t.responsable_id)}{t.nota_trabada ? ` · ${t.nota_trabada}` : ""}</span>
+                        <span className="chico suave">{nombreDe(responsables, claveResponsable(t))}{t.nota_trabada ? ` · ${t.nota_trabada}` : ""}</span>
                       </div>
                       <AlPunteo titulo={`Destrabar: ${t.titulo}`} origen={ctx.proyectos?.nombre ?? ctx.actividades?.nombre ?? "Tarea trabada"} proyectoId={t.proyecto_id} />
                     </li>
@@ -180,7 +181,7 @@ export default async function Coordinacion() {
                   <li key={t.id}>
                     <div className="cuerpo">
                       <span style={{ fontWeight: 600, fontSize: 14 }}>{t.titulo}</span>
-                      <span className="chico">{nombreDe(personas, t.responsable_id)} · <Vence fecha={t.vence} /></span>
+                      <span className="chico">{nombreDe(responsables, claveResponsable(t))} · <Vence fecha={t.vence} /></span>
                     </div>
                   </li>
                 ))}

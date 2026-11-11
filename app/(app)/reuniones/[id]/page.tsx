@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requerirMiembro } from "@/lib/sesion";
-import { nombreDe, personasActivas } from "@/lib/datos";
+import { claveResponsable, nombreDe, personasActivas, responsablesPosibles } from "@/lib/datos";
 import { ESTADO_IDEA, ESTADO_REUNION, SEGUIMIENTO } from "@/lib/etiquetas";
 import { fechaCorta, fechaLarga } from "@/lib/fechas";
 import { ChipDe } from "@/components/Chip";
@@ -22,7 +22,7 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
   const [temasR, decisionesR, tareasR, personas, proyectosR] = await Promise.all([
     supabase.from("reunion_temas").select("*, ideas(id, titulo, estado, proyecto_id), proyectos(nombre)").eq("reunion_id", id).order("orden").order("created_at"),
     supabase.from("decisiones").select("*").eq("reunion_id", id).order("created_at"),
-    supabase.from("tareas").select("id, titulo, responsable_id, vence, estado, tema_id").eq("reunion_id", id).order("created_at"),
+    supabase.from("tareas").select("id, titulo, responsable_id, responsable_nomina_id, vence, estado, tema_id").eq("reunion_id", id).order("created_at"),
     personasActivas(supabase),
     supabase.from("proyectos").select("id, nombre").not("estado", "in", "(descartado,terminado)").order("nombre"),
   ]);
@@ -35,6 +35,8 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
   const temas = (temasR.data ?? []) as unknown as Tema[];
   const decisiones = decisionesR.data ?? [];
   const tareas = tareasR.data ?? [];
+  // Las tareas se pueden dejar a nombre de alguien sin cuenta (provisorio).
+  const responsables = await responsablesPosibles(supabase, personas);
 
   const cerrada = r.estado === "cerrada";
   const puedeEditar = yo.esCoord || (r.acta_por === yo.id && !cerrada && yo.estado === "activo");
@@ -53,17 +55,17 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
     `📝 Acta: ${tomaActa ?? "alguien la toma"} y se la pasa a ${responsable} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`,
   ].join("\n");
 
-  const libres = tareas.filter((x) => !x.responsable_id);
+  const libres = tareas.filter((x) => !claveResponsable(x));
   const textoActa = [
     `*Acta · reunión del ${fechaLarga(r.fecha)}*`,
     ...temas.flatMap((t, i) => {
       const ds = decisiones.filter((d) => d.tema_id === t.id);
-      const ts = tareas.filter((x) => x.tema_id === t.id && x.responsable_id);
+      const ts = tareas.filter((x) => x.tema_id === t.id && claveResponsable(x));
       return [
         "",
         `${i + 1}. ${t.titulo}`,
         ...ds.map((d) => `• Decisión: ${d.texto}${d.va_a_seguimiento ? " (va a seguimiento)" : ""}`),
-        ...ts.map((x) => `• Tarea: ${x.titulo} — ${nombreDe(personas, x.responsable_id)}${x.vence ? ` (para el ${fechaCorta(x.vence)})` : ""}`),
+        ...ts.map((x) => `• Tarea: ${x.titulo} — ${nombreDe(responsables, claveResponsable(x))}${x.vence ? ` (para el ${fechaCorta(x.vence)})` : ""}`),
       ];
     }),
     ...(libres.length
@@ -254,11 +256,11 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
                       <div key={x.id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: 14 }}>
                         <span className="chip verde"><IconoCheck size={12} /> Creada</span>
                         <span style={{ fontWeight: 600 }}>{x.titulo}</span>
-                        <span className="suave">· {nombreDe(personas, x.responsable_id)} ·</span>
+                        <span className="suave">· {nombreDe(responsables, claveResponsable(x))} ·</span>
                         <Vence fecha={x.vence} hecha={x.estado === "hecha"} />
                       </div>
                     ))}
-                    {puedeEditar && <AgregarTarea personas={personas} reunionId={id} temaId={t.id} proyectoId={t.proyecto_id} sufijo={t.id} />}
+                    {puedeEditar && <AgregarTarea personas={responsables} reunionId={id} temaId={t.id} proyectoId={t.proyecto_id} sufijo={t.id} />}
                   </div>
                 )}
               </section>
