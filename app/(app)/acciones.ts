@@ -506,7 +506,15 @@ export async function agregarTema(fd: FormData) {
   const { count } = await supabase.from("reunion_temas").select("id", { count: "exact", head: true }).eq("reunion_id", reunion_id);
   const { error } = await supabase
     .from("reunion_temas")
-    .insert({ reunion_id, titulo, origen: txt(fd, "origen"), proyecto_id: txt(fd, "proyecto_id"), orden: (count ?? 0) + 1 });
+    .insert({
+      reunion_id,
+      titulo,
+      origen: txt(fd, "origen"),
+      proyecto_id: txt(fd, "proyecto_id"),
+      puntos: txt(fd, "puntos"),
+      minutos: txt(fd, "minutos") ? Number(txt(fd, "minutos")) || null : null,
+      orden: (count ?? 0) + 1,
+    });
   if (await fallo(error)) return;
   refrescar();
 }
@@ -517,6 +525,7 @@ export async function actualizarTema(fd: FormData) {
   if (!id) return;
   const cambios: Record<string, unknown> = {};
   if (fd.has("notas")) cambios.notas = txt(fd, "notas");
+  if (fd.has("puntos")) cambios.puntos = txt(fd, "puntos");
   if (fd.has("estado")) cambios.estado = txt(fd, "estado");
   const { error } = await supabase.from("reunion_temas").update(cambios).eq("id", id);
   if (await fallo(error)) return;
@@ -946,5 +955,67 @@ export async function borrarEvento(fd: FormData) {
   if (!id) return;
   const { error } = await supabase.from("eventos").delete().eq("id", id);
   if (await fallo(error)) return;
+  refrescar();
+}
+
+// ---------- Punteo sugerido ----------
+type TemaBorrador = { titulo: string; origen: string; puntos: string[]; minutos: number; proyectoId?: string | null };
+
+/** Suma al punteo los temas elegidos del borrador y guarda el borrador para comparar después con el punteo final. */
+export async function usarBorrador(fd: FormData) {
+  const { supabase } = await cliente();
+  const reunion_id = txt(fd, "reunion_id");
+  if (!reunion_id) return;
+  const elegidos = fd.getAll("tema").map((v) => JSON.parse(String(v)) as TemaBorrador);
+  const operativas = (txt(fd, "operativas") ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
+  if (operativas.length) {
+    // Las operativas que bajaron van después del acta.
+    const i = elegidos.findIndex((t) => t.origen !== "Fijo");
+    elegidos.splice(i < 0 ? 1 : i, 0, { titulo: "Operativas que bajaron", origen: "Operativa", puntos: operativas, minutos: Math.min(10, 2 + 2 * operativas.length) });
+  }
+  // El repaso de tareas siempre cierra, aunque se hayan sumado temas que no entraban.
+  const r = elegidos.findIndex((t) => t.origen === "Fijo" && /^Repaso/.test(t.titulo));
+  if (r >= 0) elegidos.push(...elegidos.splice(r, 1));
+  if (!elegidos.length) return void (await avisar("No elegiste ningún tema."));
+  const { count } = await supabase.from("reunion_temas").select("id", { count: "exact", head: true }).eq("reunion_id", reunion_id);
+  const { error } = await supabase.from("reunion_temas").insert(
+    elegidos.map((t, i) => ({
+      reunion_id,
+      orden: (count ?? 0) + i + 1,
+      titulo: t.titulo,
+      origen: t.origen,
+      puntos: t.puntos.join("\n") || null,
+      minutos: t.minutos,
+      proyecto_id: t.proyectoId ?? null,
+    })),
+  );
+  if (await fallo(error)) return;
+  await supabase
+    .from("reuniones")
+    .update({ borrador_punteo: { generado: new Date().toISOString(), sugeridos: JSON.parse(txt(fd, "borrador") ?? "[]"), elegidos: elegidos.map((t) => t.titulo), operativas } })
+    .eq("id", reunion_id);
+  refrescar();
+  await avisar(`Punteo armado: ${elegidos.length === 1 ? "se sumó 1 tema" : `se sumaron ${elegidos.length} temas`}. Corregilo como quieras: lo que cambies sirve para ajustar el criterio.`, "verde");
+  redirect(`/reuniones/${reunion_id}`);
+}
+
+/** Sube o baja un tema en el punteo. */
+export async function moverTema(fd: FormData) {
+  const { supabase } = await cliente();
+  const id = txt(fd, "id");
+  const dir = txt(fd, "dir");
+  if (!id || (dir !== "arriba" && dir !== "abajo")) return;
+  const { data: t } = await supabase.from("reunion_temas").select("reunion_id").eq("id", id).single();
+  if (!t) return;
+  const { data: todos } = await supabase.from("reunion_temas").select("id, orden").eq("reunion_id", t.reunion_id).order("orden").order("created_at");
+  const lista = (todos ?? []).map((x) => x.id);
+  const i = lista.indexOf(id);
+  const j = dir === "arriba" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= lista.length) return;
+  [lista[i], lista[j]] = [lista[j], lista[i]];
+  for (const [k, tid] of lista.entries()) {
+    const { error } = await supabase.from("reunion_temas").update({ orden: k + 1 }).eq("id", tid);
+    if (await fallo(error)) return;
+  }
   refrescar();
 }

@@ -4,13 +4,14 @@ import { requerirMiembro } from "@/lib/sesion";
 import { claveResponsable, nombreDe, personasActivas, responsablesPosibles } from "@/lib/datos";
 import { ESTADO_IDEA, ESTADO_REUNION, SEGUIMIENTO } from "@/lib/etiquetas";
 import { fechaCorta, fechaLarga } from "@/lib/fechas";
+import { horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
 import { ChipDe } from "@/components/Chip";
 import { Confirmar, Copiar, Enviar } from "@/components/Cliente";
 import { AgregarTarea } from "@/components/AgregarTarea";
 import { BotonesSeguimiento } from "@/components/Seguimiento";
 import { Vence } from "@/components/TablaTareas";
 import { IconoCheck } from "@/components/Iconos";
-import { actualizarReunion, actualizarTema, agregarDecision, agregarTema, borrarDecision, borrarTema, resolverIdea } from "../../acciones";
+import { actualizarReunion, actualizarTema, agregarDecision, agregarTema, borrarDecision, borrarTema, moverTema, resolverIdea } from "../../acciones";
 
 export default async function Reunion({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,6 +30,7 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
 
   type Tema = {
     id: string; titulo: string; origen: string | null; notas: string | null; estado: string; proyecto_id: string | null; idea_id: string | null;
+    puntos: string | null; minutos: number | null;
     ideas: { id: string; titulo: string; estado: string; proyecto_id: string | null } | null;
     proyectos: { nombre: string } | null;
   };
@@ -45,15 +47,9 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
   // Quien toma el acta se la pasa a la responsable por WhatsApp (no todos usan la página todavía).
   const responsable = personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable";
   const tomaActa = r.acta_por ? nombreDe(personas, r.acta_por) : null;
-  const textoPunteo = [
-    `*Reunión de comisión · ${fechaLarga(r.fecha)}, ${r.hora}*`,
-    "18:15 en la puerta del aula · 18:30 arrancamos",
-    "",
-    "Punteo:",
-    ...temas.map((t, i) => `${i + 1}. ${t.titulo}`),
-    "",
-    `📝 Acta: ${tomaActa ?? "alguien la toma"} y se la pasa a ${responsable} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`,
-  ].join("\n");
+  const textoPunteo = armarTextoPunteo(`*Reunión de AA · ${fechaLarga(r.fecha)}*${tomaActa ? `\n📝 Toma el acta: ${tomaActa}` : ""}`, temas, responsable);
+  const horas = horarios(temas.map((t) => t.minutos));
+  const totalMin = temas.reduce((s, t) => s + (t.minutos ?? 5), 0);
 
   const libres = tareas.filter((x) => !claveResponsable(x));
   const textoActa = [
@@ -126,14 +122,15 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
       <div className="columnas">
         <div className="col-lateral" style={{ flex: "1 1 250px" }}>
         <nav className="tarjeta punteo" aria-label="Temas del punteo" style={{ gap: 4 }}>
-          <p className="chico suave" style={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", padding: "0 8px" }}>Punteo</p>
+          <p className="chico suave" style={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", padding: "0 8px" }}>Punteo · {totalMin} de 65 min</p>
+          {yo.esCoord && !cerrada && <Link href={`/reuniones/${id}/armar`} className="boton chico" style={{ margin: "0 8px 6px" }}>Armar punteo sugerido</Link>}
           {temas.length === 0 && <p className="suave chico" style={{ padding: "0 8px" }}>Sin temas todavía.</p>}
           {temas.map((t, i) => (
             <a key={t.id} href={`#tema-${t.id}`}>
               <span className={`tema-numero${t.estado === "tratado" ? " tratado" : ""}`}>{t.estado === "tratado" ? <IconoCheck size={14} /> : i + 1}</span>
               <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{t.titulo}</span>
-                <span className={`chico ${t.estado === "tratado" ? "texto-verde" : "suave"}`}>{t.estado === "tratado" ? "Tratado" : t.origen ?? "Pendiente"}</span>
+                <span className={`chico ${t.estado === "tratado" ? "texto-verde" : "suave"}`}>{t.estado === "tratado" ? "Tratado" : `${horas[i]} · ${t.minutos ?? 5} min`}</span>
               </span>
             </a>
           ))}
@@ -162,11 +159,10 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
                     <span className={`tema-numero${t.estado === "tratado" ? " tratado" : ""}`}>{i + 1}</span>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <h2 id={`tt-${t.id}`}>{t.titulo}</h2>
-                      {(t.proyecto_id || t.origen) && (
-                        <span className="chico suave">
-                          {t.proyecto_id ? <Link href={`/proyectos/${t.proyecto_id}`}>{t.proyectos?.nombre ?? "Proyecto"}</Link> : t.origen}
-                        </span>
-                      )}
+                      <span className="chico suave">
+                        {horas[i]} · {t.minutos ?? 5} min
+                        {(t.proyecto_id || t.origen) && <> · {t.proyecto_id ? <Link href={`/proyectos/${t.proyecto_id}`}>{t.proyectos?.nombre ?? "Proyecto"}</Link> : t.origen}</>}
+                      </span>
                     </div>
                   </div>
                   {puedeEditar && (
@@ -176,6 +172,20 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
                         <input type="hidden" name="estado" value={t.estado === "tratado" ? "pendiente" : "tratado"} />
                         <Enviar className={t.estado === "tratado" ? "boton chico" : "boton verde chico"} pendiente="…">{t.estado === "tratado" ? "Reabrir tema" : "Marcar tratado"}</Enviar>
                       </form>
+                      {!cerrada && i > 0 && (
+                        <form action={moverTema} className="en-linea">
+                          <input type="hidden" name="id" value={t.id} />
+                          <input type="hidden" name="dir" value="arriba" />
+                          <Enviar className="boton chico" pendiente="…" aria-label="Subir tema">↑</Enviar>
+                        </form>
+                      )}
+                      {!cerrada && i < temas.length - 1 && (
+                        <form action={moverTema} className="en-linea">
+                          <input type="hidden" name="id" value={t.id} />
+                          <input type="hidden" name="dir" value="abajo" />
+                          <Enviar className="boton chico" pendiente="…" aria-label="Bajar tema">↓</Enviar>
+                        </form>
+                      )}
                       <form action={borrarTema} className="en-linea">
                         <input type="hidden" name="id" value={t.id} />
                         <Confirmar mensaje="¿Quitar este tema del punteo?">Quitar</Confirmar>
@@ -183,6 +193,12 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
                     </div>
                   )}
                 </div>
+
+                {t.puntos && (
+                  <ul className="chico" style={{ margin: 0, paddingLeft: 20 }}>
+                    {t.puntos.split("\n").filter(Boolean).map((p, k) => <li key={k}>{p}</li>)}
+                  </ul>
+                )}
 
                 {t.ideas && (
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", border: "1px solid var(--linea)", borderRadius: 10 }}>
@@ -274,12 +290,29 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
                 <label htmlFor="nuevo-tema">Agregar tema</label>
                 <input id="nuevo-tema" name="titulo" type="text" placeholder="Tema" required />
               </div>
+              <div className="campo" style={{ flex: "0 0 90px" }}>
+                <label htmlFor="tema-min">Minutos</label>
+                <input id="tema-min" name="minutos" type="number" min={1} max={90} placeholder="5" />
+              </div>
+              <div className="campo" style={{ flex: "1 1 160px" }}>
+                <label htmlFor="tema-origen">Qué es</label>
+                <select id="tema-origen" name="origen" defaultValue="">
+                  <option value="">Tema</option>
+                  <option value="Operativa">Operativa que bajó</option>
+                  <option value="Proyecto">Avance de proyecto</option>
+                  <option value="Pendientes">Pendiente</option>
+                </select>
+              </div>
               <div className="campo" style={{ flex: "1 1 200px" }}>
                 <label htmlFor="tema-proyecto">De qué proyecto (opcional)</label>
                 <select id="tema-proyecto" name="proyecto_id" defaultValue="">
                   <option value="">Ninguno</option>
                   {(proyectosR.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
+              </div>
+              <div className="campo" style={{ flex: "1 1 100%" }}>
+                <label htmlFor="tema-puntos">Puntos o preguntas (uno por línea, opcional)</label>
+                <textarea id="tema-puntos" name="puntos" rows={2} />
               </div>
               <Enviar className="boton primario">Agregar</Enviar>
             </form>

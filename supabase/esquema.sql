@@ -345,3 +345,7 @@ insert into public.lineas (nombre, fundamento, orden) values
 --   trigger proteger_bloque: el asignado solo marca enviados / listo.
 -- pg_cron 'purgar-contactos' (todos los días 9:15 UTC): private.purgar_contactos() vacía los contactos 7 días después del día de contacto.
 -- eventos: fechas de la agrupación (fecha vacía = a confirmar), origen (Agrupación, JUP, comisión…). Leen y cargan miembros; editan coordinación o quien la cargó.
+-- ---------- 11/11/2026 · punteo_sugerido ----------
+-- reunion_temas: + puntos (uno por línea, salen en el punteo) + minutos. reuniones: + borrador_punteo jsonb (lo que sugirió la página).
+-- ---------- 11/11/2026 · tareas_responsable_sin_cuenta (provisorio) ----------
+-- tareas: + responsable_nomina_id (alguien de la lista sin cuenta); trigger pasar_tareas en nomina.

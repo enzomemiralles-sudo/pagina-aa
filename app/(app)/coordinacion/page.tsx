@@ -9,6 +9,7 @@ import { BotonesSeguimiento } from "@/components/Seguimiento";
 import { Vence } from "@/components/TablaTareas";
 import { IconoCandado } from "@/components/Iconos";
 import { agregarTema, alPunteo, crearReunion } from "../acciones";
+import { horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
 
 function AlPunteo({ titulo, origen, proyectoId, ideaId }: { titulo?: string; origen?: string; proyectoId?: string | null; ideaId?: string }) {
   return (
@@ -67,25 +68,18 @@ export default async function Coordinacion() {
     }),
   ];
 
-  let temas: { id: string; titulo: string; origen: string | null }[] = [];
+  let temas: { id: string; titulo: string; origen: string | null; puntos: string | null; minutos: number | null }[] = [];
   if (reunion.data) {
-    const { data } = await supabase.from("reunion_temas").select("id, titulo, origen").eq("reunion_id", reunion.data.id).order("orden").order("created_at");
+    const { data } = await supabase.from("reunion_temas").select("id, titulo, origen, puntos, minutos").eq("reunion_id", reunion.data.id).order("orden").order("created_at");
     temas = data ?? [];
   }
 
   const recordatorio = `Recordatorio: antes del martes a las 22 h, cada uno carga su actualización semanal. Son dos minutos: ${base}/actualizacion`;
   const responsables = await responsablesPosibles(supabase, personas);
   const textoPunteo = reunion.data
-    ? [
-        `*Reunión de comisión · ${fechaLarga(reunion.data.fecha)}, ${reunion.data.hora}*`,
-        "18:15 en la puerta del aula · 18:30 arrancamos",
-        "",
-        "Punteo:",
-        ...temas.map((t, i) => `${i + 1}. ${t.titulo}`),
-        "",
-        `📝 Acta: alguien la toma y se la pasa a ${personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable"} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`,
-      ].join("\n")
+    ? armarTextoPunteo(`*Reunión de AA · ${fechaLarga(reunion.data.fecha)}*`, temas, personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable")
     : "";
+  const horas = horarios(temas.map((t) => t.minutos));
 
   return (
     <>
@@ -260,7 +254,7 @@ export default async function Coordinacion() {
                     <span className="tema-numero">{i + 1}</span>
                     <span style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontWeight: 600 }}>{t.titulo}</span>
-                      {t.origen && <span className="chico suave">{t.origen}</span>}
+                      <span className="chico suave">{horas[i]} · {t.minutos ?? 5} min{t.origen ? ` · ${t.origen}` : ""}</span>
                     </span>
                   </li>
                 ))}
@@ -271,6 +265,7 @@ export default async function Coordinacion() {
                 <input id="tema" name="titulo" type="text" placeholder="Agregar tema" required />
                 <Enviar className="boton" pendiente="…">Agregar</Enviar>
               </form>
+              <Link href={`/reuniones/${reunion.data.id}/armar`} className="boton">Armar punteo sugerido</Link>
               <Copiar texto={textoPunteo} className="boton primario">Copiar para WhatsApp</Copiar>
               <Link href={`/reuniones/${reunion.data.id}`} className="boton">Abrir la reunión</Link>
             </>
