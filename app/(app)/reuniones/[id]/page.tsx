@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requerirMiembro } from "@/lib/sesion";
 import { nombreDe, personasActivas } from "@/lib/datos";
 import { ESTADO_IDEA, ESTADO_REUNION, SEGUIMIENTO } from "@/lib/etiquetas";
-import { fechaLarga } from "@/lib/fechas";
+import { fechaCorta, fechaLarga } from "@/lib/fechas";
 import { ChipDe } from "@/components/Chip";
 import { Confirmar, Copiar, Enviar } from "@/components/Cliente";
 import { AgregarTarea } from "@/components/AgregarTarea";
@@ -40,28 +40,35 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
   const puedeEditar = yo.esCoord || (r.acta_por === yo.id && !cerrada && yo.estado === "activo");
   const titulo = fechaLarga(r.fecha).replace(/^./, (c) => c.toUpperCase());
 
+  // Quien toma el acta se la pasa a la responsable por WhatsApp (no todos usan la página todavía).
+  const responsable = personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable";
+  const tomaActa = r.acta_por ? nombreDe(personas, r.acta_por) : null;
   const textoPunteo = [
     `*Reunión de comisión · ${fechaLarga(r.fecha)}, ${r.hora}*`,
+    "18:15 en la puerta del aula · 18:30 arrancamos",
+    "",
     "Punteo:",
     ...temas.map((t, i) => `${i + 1}. ${t.titulo}`),
     "",
-    "Antes de la reunión, cargá tu actualización en la página.",
+    `📝 Acta: ${tomaActa ?? "alguien la toma"} y se la pasa a ${responsable} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`,
   ].join("\n");
 
+  const libres = tareas.filter((x) => !x.responsable_id);
   const textoActa = [
     `*Acta · reunión del ${fechaLarga(r.fecha)}*`,
     ...temas.flatMap((t, i) => {
       const ds = decisiones.filter((d) => d.tema_id === t.id);
-      const ts = tareas.filter((x) => x.tema_id === t.id);
+      const ts = tareas.filter((x) => x.tema_id === t.id && x.responsable_id);
       return [
         "",
         `${i + 1}. ${t.titulo}`,
         ...ds.map((d) => `• Decisión: ${d.texto}${d.va_a_seguimiento ? " (va a seguimiento)" : ""}`),
-        ...ts.map((x) => `• Tarea: ${x.titulo} — ${nombreDe(personas, x.responsable_id)}`),
+        ...ts.map((x) => `• Tarea: ${x.titulo} — ${nombreDe(personas, x.responsable_id)}${x.vence ? ` (para el ${fechaCorta(x.vence)})` : ""}`),
       ];
     }),
-    "",
-    "Cada tarea ya está en la página, en el Inicio de su responsable.",
+    ...(libres.length
+      ? ["", "🙋 *Tareas libres* (si no viniste, avisá cuál tomás):", ...libres.map((x) => `• ${x.titulo}${x.vence ? ` (para el ${fechaCorta(x.vence)})` : ""}`)]
+      : []),
   ].join("\n");
 
   const estadoReunion = (estado: string, texto: string, clase = "boton chico") => (

@@ -75,7 +75,15 @@ export default async function Coordinacion() {
 
   const recordatorio = `Recordatorio: antes del martes a las 22 h, cada uno carga su actualización semanal. Son dos minutos: ${base}/actualizacion`;
   const textoPunteo = reunion.data
-    ? [`*Reunión de comisión · ${fechaLarga(reunion.data.fecha)}, ${reunion.data.hora}*`, "Punteo:", ...temas.map((t, i) => `${i + 1}. ${t.titulo}`)].join("\n")
+    ? [
+        `*Reunión de comisión · ${fechaLarga(reunion.data.fecha)}, ${reunion.data.hora}*`,
+        "18:15 en la puerta del aula · 18:30 arrancamos",
+        "",
+        "Punteo:",
+        ...temas.map((t, i) => `${i + 1}. ${t.titulo}`),
+        "",
+        `📝 Acta: alguien la toma y se la pasa a ${personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable"} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`,
+      ].join("\n")
     : "";
 
   return (
