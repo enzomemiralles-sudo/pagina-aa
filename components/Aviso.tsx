@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /** Muestra el aviso que dejó una acción (error o confirmación) y lo borra. */
-export function Aviso({ texto, tipo }: { texto: string; tipo: "rojo" | "verde" }) {
+export function Aviso({ texto, tipo }: { texto: string; tipo: "rojo" | "ambar" | "verde" }) {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
     document.cookie = "aviso=; Max-Age=0; path=/";

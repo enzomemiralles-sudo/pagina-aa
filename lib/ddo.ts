@@ -1,6 +1,6 @@
 // DDO (lo que cada comisión hace en la semana): se pega el texto tal como circula por WhatsApp
 // y la página lo ordena por día. Lo de Comunicación ("COMU:") se separa.
-import { diaSemana, fechaDdo, sumarDias } from "./fechas";
+import { diaSemana, fechaDdo, lunesDe, sumarDias } from "./fechas";
 
 export type ItemDdo = { texto: string; comu: boolean };
 export type DiaDdo = { fecha: string; titulo: string; items: ItemDdo[]; aviso?: string };
@@ -117,9 +117,13 @@ export function leerDdo(texto: string, ref: string, comision?: string): DdoLeido
     const plano = sinTildes(l).toLowerCase();
     const tieneViñeta = VIÑETA.test(l);
 
-    if (!tieneViñeta && /^objetivos\b/.test(plano)) {
+    // "Objetivos semanales:" o "Objetivo semanal: ordenar el material" (lo que sigue a los dos puntos es un objetivo).
+    if (!tieneViñeta && /^objetivos?\b/.test(plano)) {
       sec = { tipo: "obj" };
       comu = false;
+      const dosPuntos = l.indexOf(":");
+      const resto = dosPuntos >= 0 ? l.slice(dosPuntos + 1).trim() : "";
+      if (resto) r.objetivos.push(resto);
       continue;
     }
 
@@ -162,6 +166,22 @@ export function leerDdo(texto: string, ref: string, comision?: string): DdoLeido
 
   r.dias.sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
   return r;
+}
+
+/** Semana (lunes) de un DDO según las fechas de sus días; null si no trae días. */
+export function semanaDelDdo(texto: string, ref: string): string | null {
+  const cuenta = new Map<string, number>();
+  for (const d of leerDdo(texto, ref).dias) {
+    const l = lunesDe(d.fecha);
+    cuenta.set(l, (cuenta.get(l) ?? 0) + 1);
+  }
+  const [mejor] = [...cuenta.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1));
+  return mejor ? mejor[0] : null;
+}
+
+/** Fecha de referencia para leer un DDO guardado: el jueves de su semana, así los días sin fecha caen dentro de ella. */
+export function refDeSemana(semana: string): string {
+  return sumarDias(semana, 3);
 }
 
 /** "18:30" → "18.30 hs"; "18" → "18 hs"; deja como está lo que ya dice "h". */

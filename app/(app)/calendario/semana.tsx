@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requerirMiembro } from "@/lib/sesion";
 import { CANAL, claseComision } from "@/lib/etiquetas";
 import { fechaCorta, hoyBA, lunesDe, sumarDias } from "@/lib/fechas";
-import { leerDdo } from "@/lib/ddo";
+import { leerDdo, refDeSemana } from "@/lib/ddo";
 import { Semana, type ItemSemana } from "@/components/Semana";
 import { Confirmar, Enviar } from "@/components/Cliente";
 import { borrarEvento, guardarEvento } from "../acciones";
@@ -21,7 +21,7 @@ export async function SemanaAgrupacion({ semana }: { semana?: string }) {
     supabase.from("actividades").select("id, nombre, fecha, hora").gte("fecha", lunes).lte("fecha", domingo).neq("estado", "cancelada"),
     supabase.from("tareas").select("id, titulo, vence, estado, canal, actividad_id, proyecto_id").gte("vence", lunes).lte("vence", domingo).not("estado", "in", "(hecha,cancelada)"),
     supabase.from("eventos").select("id, titulo, fecha, hora, lugar, origen, nota, created_by").or(`fecha.is.null,and(fecha.gte.${lunes},fecha.lte.${domingo})`).order("fecha"),
-    yo.esCoord ? supabase.from("ddo").select("comision, texto, updated_at").in("semana", [lunes, sumarDias(lunes, -7)]) : Promise.resolve({ data: [] }),
+    yo.esCoord ? supabase.from("ddo").select("comision, texto, updated_at, semana").in("semana", [lunes, sumarDias(lunes, -7)]) : Promise.resolve({ data: [] }),
   ]);
 
   const items: ItemSemana[] = [];
@@ -38,13 +38,16 @@ export async function SemanaAgrupacion({ semana }: { semana?: string }) {
       href: t.actividad_id ? `/actividades/${t.actividad_id}` : t.proyecto_id ? `/proyectos/${t.proyecto_id}` : undefined,
     });
   }
-  // Otras comisiones (DDO): solo coordinación. Si hay dos semanas cargadas, se usa la más nueva de cada comisión.
+  // Otras comisiones (DDO): solo coordinación. Va el DDO de esta semana; si una comisión no lo cargó,
+  // se mira el de la semana anterior por si trae días de esta (los que se cargaban el domingo quedaban ahí).
   const comisiones = new Set<string>();
   const vistas = new Set<string>();
-  for (const d of ((ddoR.data ?? []) as { comision: string; texto: string; updated_at: string }[]).sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1))) {
+  type FilaDdo = { comision: string; texto: string; updated_at: string; semana: string };
+  const propias = (d: FilaDdo) => (d.semana === lunes ? 0 : 1);
+  for (const d of ((ddoR.data ?? []) as FilaDdo[]).sort((a, b) => propias(a) - propias(b) || (a.updated_at < b.updated_at ? 1 : -1))) {
     if (d.comision === "Actividades Académicas" || vistas.has(d.comision)) continue;
     vistas.add(d.comision);
-    const leido = leerDdo(d.texto, d.updated_at.slice(0, 10), d.comision);
+    const leido = leerDdo(d.texto, refDeSemana(d.semana), d.comision);
     for (const dia of leido.dias) {
       if (dia.fecha < lunes || dia.fecha > domingo) continue;
       dia.items.forEach((it, k) => {

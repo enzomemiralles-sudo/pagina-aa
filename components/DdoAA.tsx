@@ -6,7 +6,7 @@ import { guardarDdoAA } from "@/app/(app)/acciones";
 import { Copiar, Enviar } from "./Cliente";
 
 /** Arma el DDO de AA con lo cargado en la página; los objetivos se escriben a mano. */
-export function DdoAA({ dias, objetivosIniciales }: { dias: { fecha: string; items: string[] }[]; objetivosIniciales: string[] }) {
+export function DdoAA({ semana, dias, objetivosIniciales }: { semana: string; dias: { fecha: string; items: string[] }[]; objetivosIniciales: string[] }) {
   const [objetivos, setObjetivos] = useState(objetivosIniciales.join("\n"));
   const texto = armarDdoAA(
     objetivos.split("\n").map((o) => o.replace(/^[-*•]\s*/, "").trim()).filter(Boolean),
@@ -25,6 +25,7 @@ export function DdoAA({ dias, objetivosIniciales }: { dias: { fecha: string; ite
         <p className="texto-largo chico mensaje">{texto}</p>
         <form action={guardarDdoAA} className="acciones">
           <input type="hidden" name="texto" value={texto} />
+          <input type="hidden" name="semana" value={semana} />
           <Copiar texto={texto} className="boton primario chico">Copiar para WhatsApp</Copiar>
           <Enviar className="boton chico" pendiente="…">Guardar en la semana</Enviar>
         </form>

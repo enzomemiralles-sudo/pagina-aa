@@ -70,6 +70,12 @@ export function lunesDe(ymd: string): string {
   return sumarDias(ymd, -((diaSemana(ymd) + 6) % 7));
 }
 
+/** Semana de los DDO: de lunes a viernes, la que corre; sábado y domingo, la que viene (los DDO se mandan el fin de semana). */
+export function semanaDdoActual(hoy: string = hoyBA()): string {
+  const d = diaSemana(hoy);
+  return d === 0 || d === 6 ? sumarDias(lunesDe(hoy), 7) : lunesDe(hoy);
+}
+
 /** "noviembre 2026" */
 export function mesTitulo(ym: string): string {
   const [y, m] = ym.split("-").map(Number);

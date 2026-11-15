@@ -6,8 +6,8 @@ import { redirect } from "next/navigation";
 import { crearCliente } from "@/lib/supabase/server";
 import { GUIAS, PLAN_COMUNICACION, PLANTILLAS } from "@/lib/etiquetas";
 import { opcionForm } from "@/lib/contactos";
-import { hoyBA, lunesDe, semanaActual, sumarDias } from "@/lib/fechas";
-import { separarDdos } from "@/lib/ddo";
+import { hoyBA, lunesDe, semanaActual, semanaDdoActual, sumarDias } from "@/lib/fechas";
+import { semanaDelDdo, separarDdos } from "@/lib/ddo";
 import { separarResponsable } from "@/lib/datos";
 
 // ---------- utilidades ----------
@@ -18,7 +18,7 @@ function txt(fd: FormData, k: string): string | null {
   return s === "" ? null : s;
 }
 
-async function avisar(texto: string, tipo: "rojo" | "verde" = "rojo") {
+async function avisar(texto: string, tipo: "rojo" | "ambar" | "verde" = "rojo") {
   (await cookies()).set("aviso", JSON.stringify({ texto, tipo }), { path: "/", maxAge: 60, sameSite: "lax" });
 }
 
@@ -736,15 +736,20 @@ export async function cargarDdos(fd: FormData) {
   const { supabase } = await cliente();
   const texto = txt(fd, "texto");
   if (!texto) return void (await avisar("Pegá el texto de al menos un DDO."));
-  const semana = lunesDe(hoyBA());
-  const bloques = separarDdos(texto);
-  const { error } = await supabase
-    .from("ddo")
-    .upsert(bloques.map((b) => ({ comision: b.comision, texto: b.texto, semana })), { onConflict: "comision,semana" });
+  const hoy = hoyBA();
+  // Cada DDO va a la semana de sus fechas ("Lunes 16/11"); el que no trae fechas, a la semana que se está viendo.
+  const pedida = txt(fd, "semana") ?? "";
+  const porDefecto = /^\d{4}-\d{2}-\d{2}$/.test(pedida) ? lunesDe(pedida) : semanaDdoActual(hoy);
+  const filas = separarDdos(texto).map((b) => ({ comision: b.comision, texto: b.texto, semana: semanaDelDdo(b.texto, hoy) ?? porDefecto }));
+  const { error } = await supabase.from("ddo").upsert(filas, { onConflict: "comision,semana" });
   if (await fallo(error)) return;
   refrescar();
-  await avisar(`Cargados: ${bloques.map((b) => b.comision).join(", ")}.`, "verde");
-  redirect("/ddo");
+  const semanas = [...new Set(filas.map((f) => f.semana))].sort();
+  await avisar(
+    `Cargados: ${filas.map((f) => f.comision).join(", ")}${semanas.length > 1 ? ` (en ${semanas.length} semanas distintas: revisá las fechas)` : ""}. Las semanas anteriores quedan guardadas.`,
+    semanas.length > 1 ? "ambar" : "verde",
+  );
+  redirect(`/ddo?semana=${semanas[semanas.length - 1]}`);
 }
 
 export async function borrarDdo(fd: FormData) {
@@ -760,9 +765,11 @@ export async function guardarDdoAA(fd: FormData) {
   const { supabase } = await cliente();
   const texto = txt(fd, "texto");
   if (!texto) return;
+  const pedida = txt(fd, "semana") ?? "";
+  const semana = /^\d{4}-\d{2}-\d{2}$/.test(pedida) ? lunesDe(pedida) : semanaDdoActual();
   const { error } = await supabase
     .from("ddo")
-    .upsert({ comision: "Actividades Académicas", texto, semana: lunesDe(hoyBA()) }, { onConflict: "comision,semana" });
+    .upsert({ comision: "Actividades Académicas", texto, semana }, { onConflict: "comision,semana" });
   if (await fallo(error)) return;
   refrescar();
   await avisar("DDO de AA guardado en la semana.", "verde");

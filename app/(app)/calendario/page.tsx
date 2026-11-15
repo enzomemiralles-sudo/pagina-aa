@@ -3,7 +3,7 @@ import { requerirMiembro } from "@/lib/sesion";
 import { claveResponsable, personasActivas, responsablesPosibles, SELECT_TAREA, type Tarea } from "@/lib/datos";
 import { ESTADO_ACTIVIDAD, ESTADO_REUNION, ESTADO_TAREA, TIPO_ACTIVIDAD } from "@/lib/etiquetas";
 import { fechaCorta, fechaLarga, hoyBA, lunesDe, mesTitulo, sumarDias } from "@/lib/fechas";
-import { leerDdo } from "@/lib/ddo";
+import { leerDdo, refDeSemana } from "@/lib/ddo";
 import { Calendario, type ItemCal } from "@/components/Calendario";
 import { AgregarTarea } from "@/components/AgregarTarea";
 import { TablaTareas } from "@/components/TablaTareas";
@@ -92,9 +92,9 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   // Otras comisiones (DDO): solo coordinación, en el general.
   type Otra = { comision: string; texto: string; comu: boolean };
   const otrasPorDia = new Map<string, Otra[]>();
-  for (const d of (ddoR.data ?? []) as { comision: string; texto: string; created_at: string }[]) {
+  for (const d of (ddoR.data ?? []) as { comision: string; texto: string; created_at: string; semana: string }[]) {
     if (d.comision === "Actividades Académicas") continue;
-    const leido = leerDdo(d.texto, d.created_at.slice(0, 10), d.comision);
+    const leido = leerDdo(d.texto, refDeSemana(d.semana), d.comision);
     for (const dia of leido.dias) {
       if (dia.fecha < inicio || dia.fecha > fin) continue;
       for (const it of dia.items) {

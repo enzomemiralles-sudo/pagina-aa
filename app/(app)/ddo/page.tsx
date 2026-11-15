@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requerirCoord } from "@/lib/sesion";
-import { leerDdo, horaDdo, type DdoLeido } from "@/lib/ddo";
-import { fechaCorta, fechaDdo, haceCuanto, hoyBA, lunesDe, sumarDias } from "@/lib/fechas";
+import { leerDdo, horaDdo, refDeSemana, type DdoLeido } from "@/lib/ddo";
+import { fechaCorta, fechaDdo, haceCuanto, hoyBA, lunesDe, semanaDdoActual, sumarDias } from "@/lib/fechas";
 import { Confirmar, Enviar } from "@/components/Cliente";
 import { DdoAA } from "@/components/DdoAA";
 import { borrarDdo, cargarDdos } from "../acciones";
@@ -13,14 +13,17 @@ export default async function Ddo({ searchParams }: { searchParams: Promise<{ se
   const sp = await searchParams;
   const { supabase } = await requerirCoord();
   const hoy = hoyBA();
-  const estaSemana = lunesDe(hoy);
+  // Sábado y domingo abre en la semana que viene: es cuando llegan los DDO.
+  const estaSemana = semanaDdoActual(hoy);
   const semana = sp.semana && /^\d{4}-\d{2}-\d{2}$/.test(sp.semana) ? lunesDe(sp.semana) : estaSemana;
   const domingo = sumarDias(semana, 6);
   const esEsta = semana === estaSemana;
+  // Se puede cargar en la semana que corre y en las que vienen; las pasadas quedan como registro.
+  const sePuedeCargar = semana >= lunesDe(hoy);
 
   const { data } = await supabase.from("ddo").select("id, comision, semana, texto, created_at, updated_at").eq("semana", semana).order("comision");
   const filas = (data ?? []) as Fila[];
-  const leidos: (DdoLeido & { fila: Fila })[] = filas.map((f) => ({ ...leerDdo(f.texto, f.updated_at.slice(0, 10), f.comision), fila: f }));
+  const leidos: (DdoLeido & { fila: Fila })[] = filas.map((f) => ({ ...leerDdo(f.texto, refDeSemana(f.semana), f.comision), fila: f }));
   const otras = leidos.filter((l) => l.comision !== AA);
   const esComu = (c: string) => /^comu/i.test(c);
 
@@ -40,14 +43,15 @@ export default async function Ddo({ searchParams }: { searchParams: Promise<{ se
   const comu = fechas.flatMap((f) => porDia.get(f)!.filter((i) => i.comu).map((i) => ({ ...i, fecha: f })));
   const sinFechaComu = otras.flatMap((l) => l.otras.flatMap((o) => o.items.filter((i) => i.comu || esComu(l.comision)).map((i) => ({ comision: l.comision, texto: i.texto, titulo: o.titulo }))));
 
-  // DDO de AA: sale de lo cargado en la página (desde hoy hasta el domingo).
+  // DDO de AA: sale de lo cargado en la página (desde hoy, o el lunes si la semana todavía no empezó, hasta el domingo).
   let diasAA: { fecha: string; items: string[] }[] = [];
   let objetivosAA: string[] = [];
-  if (esEsta) {
+  if (sePuedeCargar) {
+    const desde = semana > hoy ? semana : hoy;
     const [tareas, acts, reus] = await Promise.all([
-      supabase.from("tareas").select("titulo, vence").gte("vence", hoy).lte("vence", domingo).not("estado", "in", "(hecha,cancelada)").order("vence"),
-      supabase.from("actividades").select("nombre, fecha, hora").gte("fecha", hoy).lte("fecha", domingo).neq("estado", "cancelada"),
-      supabase.from("reuniones").select("fecha, hora").gte("fecha", hoy).lte("fecha", domingo),
+      supabase.from("tareas").select("titulo, vence").gte("vence", desde).lte("vence", domingo).not("estado", "in", "(hecha,cancelada)").order("vence"),
+      supabase.from("actividades").select("nombre, fecha, hora").gte("fecha", desde).lte("fecha", domingo).neq("estado", "cancelada"),
+      supabase.from("reuniones").select("fecha, hora").gte("fecha", desde).lte("fecha", domingo),
     ]);
     const mapa = new Map<string, string[]>();
     const sumar = (f: string, t: string) => mapa.set(f, [...(mapa.get(f) ?? []), t]);
@@ -69,20 +73,25 @@ export default async function Ddo({ searchParams }: { searchParams: Promise<{ se
         <div className="acciones">
           <Link href={`/ddo?semana=${sumarDias(semana, -7)}`} className="boton chico" aria-label="Semana anterior">‹</Link>
           <span className="chip contorno">Semana del {fechaCorta(semana)} al {fechaCorta(domingo)}</span>
-          {!esEsta && <Link href="/ddo" className="boton chico">Esta semana</Link>}
+          {!esEsta && <Link href="/ddo" className="boton chico">Semana en curso</Link>}
           <Link href={`/ddo?semana=${sumarDias(semana, 7)}`} className="boton chico" aria-label="Semana siguiente">›</Link>
         </div>
       </div>
 
-      {esEsta && (
+      {!sePuedeCargar && (
+        <p className="suave chico">Semana pasada: queda como registro, no se puede cargar ni reemplazar.</p>
+      )}
+
+      {sePuedeCargar && (
         <section className="tarjeta" aria-labelledby="cargar-t">
           <details open={filas.length === 0}>
             <summary id="cargar-t">Cargar DDO</summary>
             <form action={cargarDdos} className="formulario" style={{ paddingTop: 8 }}>
+              <input type="hidden" name="semana" value={semana} />
               <div className="campo">
                 <label htmlFor="texto-ddo">Pegá uno o varios DDO, todos juntos</label>
                 <textarea id="texto-ddo" name="texto" rows={10} placeholder={"DDO Coyuntura:\nMartes 10/11:\n- Mandar a corregir boletín\n…\nDDO COLUMNA ⛓️\nObjetivos semanales:\n- …"} required />
-                <span className="ayuda">Cada uno empieza con una línea “DDO …”. Si una comisión ya tenía DDO esta semana, se reemplaza por el nuevo.</span>
+                <span className="ayuda">Cada uno empieza con una línea “DDO …”. Va a la semana de sus fechas (“Lunes 16/11”); el que no trae fechas, a la que estás viendo. Si una comisión ya tenía DDO esa semana, se reemplaza; las semanas anteriores no se tocan.</span>
               </div>
               <Enviar>Cargar</Enviar>
             </form>
@@ -194,13 +203,13 @@ export default async function Ddo({ searchParams }: { searchParams: Promise<{ se
           </div>
         </div>
       ) : (
-        <p className="tarjeta suave">{esEsta ? "Todavía no hay DDO de otras comisiones esta semana." : "No hay DDO cargados esa semana."}</p>
+        <p className="tarjeta suave">{sePuedeCargar ? "Todavía no hay DDO de otras comisiones esta semana." : "No hay DDO cargados esa semana."}</p>
       )}
 
-      {esEsta && (
+      {sePuedeCargar && (
         <section className="tarjeta" aria-labelledby="aa-t">
           <h2 id="aa-t">DDO de AA</h2>
-          <DdoAA dias={diasAA} objetivosIniciales={objetivosAA} />
+          <DdoAA semana={semana} dias={diasAA} objetivosIniciales={objetivosAA} />
         </section>
       )}
     </>

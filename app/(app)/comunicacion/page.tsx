@@ -3,7 +3,7 @@ import { requerirMiembro } from "@/lib/sesion";
 import { personasActivas } from "@/lib/datos";
 import { CANAL, ESTADO_TAREA } from "@/lib/etiquetas";
 import { fechaCorta, hoyBA, lunesDe, sumarDias } from "@/lib/fechas";
-import { leerDdo } from "@/lib/ddo";
+import { leerDdo, refDeSemana } from "@/lib/ddo";
 import { Semana, type ItemSemana } from "@/components/Semana";
 import { Enviar } from "@/components/Cliente";
 import { armarPlanComunicacion, cambiarEstadoTarea, reasignarTarea, cambiarVenceTarea } from "../acciones";
@@ -43,7 +43,7 @@ export default async function Comunicacion({ searchParams }: { searchParams: Pro
   });
   // Lo de Comunicación que viene en los DDO (solo coordinación).
   for (const d of (ddoR.data ?? []) as { comision: string; texto: string; updated_at: string }[]) {
-    const l = leerDdo(d.texto, d.updated_at.slice(0, 10), d.comision);
+    const l = leerDdo(d.texto, refDeSemana(lunes), d.comision);
     const todo = /^comu/i.test(d.comision);
     for (const dia of l.dias) for (const [k, it] of dia.items.entries()) {
       if ((it.comu || todo) && dia.fecha >= lunes && dia.fecha <= domingo) {

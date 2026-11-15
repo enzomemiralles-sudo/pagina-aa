@@ -5,11 +5,11 @@ import { ROL } from "@/lib/etiquetas";
 import { requerirMiembro } from "@/lib/sesion";
 import { salir } from "@/app/login/acciones";
 
-function leerAviso(valor: string | undefined): { texto: string; tipo: "rojo" | "verde" } | null {
+function leerAviso(valor: string | undefined): { texto: string; tipo: "rojo" | "ambar" | "verde" } | null {
   if (!valor) return null;
   try {
     const a = JSON.parse(valor);
-    if (typeof a?.texto === "string") return { texto: a.texto, tipo: a.tipo === "verde" ? "verde" : "rojo" };
+    if (typeof a?.texto === "string") return { texto: a.texto, tipo: a.tipo === "verde" || a.tipo === "ambar" ? a.tipo : "rojo" };
   } catch {}
   return null;
 }

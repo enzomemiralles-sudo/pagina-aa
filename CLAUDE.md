@@ -37,6 +37,8 @@ Leé también `AGENTS.md`: Next.js 16 tiene cambios grandes respecto de versione
 - Comunicación (`/comunicacion`): las piezas son tareas con `canal` (form, posteo, historia, reel); el plan sugerido está en `PLAN_COMUNICACION`.
 - Semana de la agrupación (`/calendario?vista=semana`): AA, DDO de las comisiones (coordinación) y `eventos` (fechas de la agrupación; sin fecha = a confirmar).
 - DDO (`/ddo`, coordinación): se pegan los DDO de las otras comisiones tal cual; `lib/ddo.ts` los separa por "DDO …", ubica cada día (si la fecha no coincide con el día de la semana, avisa) y separa lo de "COMU:". El DDO de AA se arma con tareas, actividades y reuniones de la semana.
+  - Cada DDO se guarda en la semana de sus fechas (`semanaDelDdo`); el que no trae fechas, en la semana que se está viendo. Sábado y domingo `/ddo` abre en la semana que viene (`semanaDdoActual`), porque los DDO llegan el fin de semana. Las semanas pasadas quedan como registro (no se cargan ni se reemplazan) y se recorren con las flechas, igual que en la semana de la agrupación.
+  - Para leer un DDO guardado se usa el jueves de su semana como referencia (`refDeSemana`), así los días sin fecha caen dentro de ella.
 
 ## Mapa del código
 
