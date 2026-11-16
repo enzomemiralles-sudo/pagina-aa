@@ -38,6 +38,17 @@ type Datos = {
   eventos: { titulo: string; fecha: string; hora: string | null }[];
 };
 
+// Criterio de Enzo (ver docs/criterio-punteo.md, que junta cada borrador con su corrección).
+export const TITULO_OPERATIVAS = "Operativas y fechas";
+/** Fechas de la agrupación que entran al punteo: hasta un mes adelante (el Congreso se confirma con tiempo). */
+export const DIAS_EVENTOS = 30;
+
+/** "Vuelta de Obligado: viernes 20/11, 11:30 hs. ¿Quiénes están?" / "Congreso…: viernes 4/12. Confirmar con tiempo." */
+export function puntoEvento(e: { titulo: string; fecha: string; hora: string | null }, fechaReunion: string): string {
+  const cuando = `${fechaDia(e.fecha)}${e.hora ? `, ${e.hora} hs` : ""}`;
+  return e.fecha <= sumarDias(fechaReunion, 7) ? `${e.titulo}: ${cuando}. ¿Quiénes están?` : `${e.titulo}: ${cuando}. Confirmar con tiempo.`;
+}
+
 export function armarBorrador(d: Datos): { temas: TemaSugerido[]; quedan: TemaSugerido[] } {
   const hoy = d.fechaReunion;
   const proyectoDeActividad = new Map(d.actividades.map((a) => [a.id, a.proyecto_id]));
@@ -49,10 +60,10 @@ export function armarBorrador(d: Datos): { temas: TemaSugerido[]; quedan: TemaSu
   if (d.eventos.length) {
     candidatos.push({
       clave: "operativas",
-      titulo: "Operativas y fechas de la agrupación",
+      titulo: TITULO_OPERATIVAS,
       origen: "Operativa",
-      puntos: d.eventos.map((e) => `${e.titulo}: ${fechaDia(e.fecha)}${e.hora ? ` a las ${e.hora}` : ""}`),
-      minutos: 5,
+      puntos: d.eventos.map((e) => puntoEvento(e, hoy)),
+      minutos: Math.min(10, 2 + 3 * d.eventos.length),
       prioridad: 100,
     });
   }
@@ -139,22 +150,31 @@ export function horarios(minutos: (number | null)[], inicio = INICIO): string[] 
   });
 }
 
-/** Texto del punteo para WhatsApp. */
+/**
+ * Texto del punteo para WhatsApp. Hay dos versiones (criterio de Enzo, 18/11):
+ * - sin tiempos: la que va a seguimiento (Sofi) y al grupo;
+ * - con tiempos: la de coordinación, con la hora de inicio y los minutos de cada tema.
+ */
 export function textoPunteo(
   encabezado: string,
   temas: { titulo: string; puntos: string | null; minutos: number | null; origen?: string | null }[],
   responsable: string,
+  { conTiempos = false }: { conTiempos?: boolean } = {},
 ): string {
   const tieneActa = temas.some((t) => /acta/i.test(t.titulo));
+  const horas = horarios(temas.map((t) => t.minutos));
   return [
     encabezado,
-    `🕕 18:15 en la puerta del aula · ${INICIO} arrancamos · ${FIN} terminamos`,
-    "",
-    "Punteo:",
+    ...(conTiempos ? [`🕕 18:15 en la puerta del aula · ${INICIO} arrancamos · ${FIN} terminamos`, ""] : []),
     ...temas.flatMap((t, i) => [
-      `${i + 1}. ${t.titulo}${t.minutos ? ` (${t.minutos}')` : ""}`,
+      `${i + 1}. ${t.titulo}${conTiempos ? ` (${horas[i]} · ${t.minutos ?? 5}')` : ""}`,
       ...(t.puntos ?? "").split("\n").map((p) => p.trim()).filter(Boolean).map((p) => `   – ${p}`),
     ]),
     ...(tieneActa ? [] : ["", `📝 Acta: alguien la toma y se la pasa a ${responsable} por WhatsApp al terminar, con cada tarea con nombre y fecha, y las que quedan libres para quienes no vinieron.`]),
   ].join("\n");
+}
+
+/** Encabezado del punteo: "*Punteo – Reunión de AA · miércoles 18/11*". */
+export function encabezadoPunteo(fecha: string): string {
+  return `*Punteo – Reunión de AA · ${fechaDia(fecha)}*`;
 }

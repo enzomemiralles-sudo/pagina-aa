@@ -9,6 +9,7 @@ import { opcionForm } from "@/lib/contactos";
 import { hoyBA, lunesDe, semanaActual, semanaDdoActual, sumarDias } from "@/lib/fechas";
 import { semanaDelDdo, separarDdos } from "@/lib/ddo";
 import { separarResponsable } from "@/lib/datos";
+import { TITULO_OPERATIVAS } from "@/lib/punteo";
 
 // ---------- utilidades ----------
 function txt(fd: FormData, k: string): string | null {
@@ -976,9 +977,15 @@ export async function usarBorrador(fd: FormData) {
   const elegidos = fd.getAll("tema").map((v) => JSON.parse(String(v)) as TemaBorrador);
   const operativas = (txt(fd, "operativas") ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
   if (operativas.length) {
-    // Las operativas que bajaron van después del acta.
-    const i = elegidos.findIndex((t) => t.origen !== "Fijo");
-    elegidos.splice(i < 0 ? 1 : i, 0, { titulo: "Operativas que bajaron", origen: "Operativa", puntos: operativas, minutos: Math.min(10, 2 + 2 * operativas.length) });
+    // Las operativas que bajaron se suman a "Operativas y fechas", que va después del acta.
+    const ya = elegidos.find((t) => t.origen === "Operativa");
+    if (ya) {
+      ya.puntos = [...operativas, ...ya.puntos];
+      ya.minutos = Math.min(12, ya.minutos + 2 * operativas.length);
+    } else {
+      const i = elegidos.findIndex((t) => t.origen !== "Fijo");
+      elegidos.splice(i < 0 ? 1 : i, 0, { titulo: TITULO_OPERATIVAS, origen: "Operativa", puntos: operativas, minutos: Math.min(10, 2 + 2 * operativas.length) });
+    }
   }
   // El repaso de tareas siempre cierra, aunque se hayan sumado temas que no entraban.
   const r = elegidos.findIndex((t) => t.origen === "Fijo" && /^Repaso/.test(t.titulo));

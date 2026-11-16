@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requerirCoord } from "@/lib/sesion";
 import { claveResponsable, nombreDe, personasActivas, responsablesPosibles } from "@/lib/datos";
 import { fechaLarga, sumarDias } from "@/lib/fechas";
-import { armarBorrador, FIN, horarios, INICIO } from "@/lib/punteo";
+import { armarBorrador, FIN, horarios, INICIO, DIAS_EVENTOS } from "@/lib/punteo";
 import { Enviar } from "@/components/Cliente";
 import { usarBorrador } from "../../../acciones";
 
@@ -22,7 +22,7 @@ export default async function ArmarPunteo({ params }: { params: Promise<{ id: st
     supabase.from("tareas").select("titulo, estado, vence, responsable_id, responsable_nomina_id, proyecto_id, actividad_id, nota_trabada").not("estado", "in", "(hecha,cancelada)").is("canal", null),
     supabase.from("actualizaciones").select("integrante_id, necesito").eq("semana", r.fecha).not("necesito", "is", null),
     supabase.from("ideas").select("titulo").eq("estado", "nueva"),
-    supabase.from("eventos").select("titulo, fecha, hora").gte("fecha", r.fecha).lte("fecha", sumarDias(r.fecha, 7)).order("fecha"),
+    supabase.from("eventos").select("titulo, fecha, hora").gte("fecha", r.fecha).lte("fecha", sumarDias(r.fecha, DIAS_EVENTOS)).order("fecha"),
     supabase.from("reunion_temas").select("titulo").eq("reunion_id", id),
   ]);
   const responsables = await responsablesPosibles(supabase, personas);

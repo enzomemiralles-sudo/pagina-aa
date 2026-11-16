@@ -4,7 +4,7 @@ import { requerirMiembro } from "@/lib/sesion";
 import { claveResponsable, nombreDe, personasActivas, responsablesPosibles } from "@/lib/datos";
 import { ESTADO_IDEA, ESTADO_REUNION, SEGUIMIENTO } from "@/lib/etiquetas";
 import { fechaCorta, fechaLarga } from "@/lib/fechas";
-import { horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
+import { encabezadoPunteo, horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
 import { ChipDe } from "@/components/Chip";
 import { Confirmar, Copiar, Enviar } from "@/components/Cliente";
 import { AgregarTarea } from "@/components/AgregarTarea";
@@ -47,7 +47,10 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
   // Quien toma el acta se la pasa a la responsable por WhatsApp (no todos usan la página todavía).
   const responsable = personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable";
   const tomaActa = r.acta_por ? nombreDe(personas, r.acta_por) : null;
-  const textoPunteo = armarTextoPunteo(`*Reunión de AA · ${fechaLarga(r.fecha)}*${tomaActa ? `\n📝 Toma el acta: ${tomaActa}` : ""}`, temas, responsable);
+  const encabezado = `${encabezadoPunteo(r.fecha)}${tomaActa ? `\n📝 Toma el acta: ${tomaActa}` : ""}`;
+  // Sin tiempos: para seguimiento y el grupo. Con tiempos: para coordinación.
+  const textoPunteo = armarTextoPunteo(encabezado, temas, responsable);
+  const textoConTiempos = armarTextoPunteo(encabezado, temas, responsable, { conTiempos: true });
   const horas = horarios(temas.map((t) => t.minutos));
   const totalMin = temas.reduce((s, t) => s + (t.minutos ?? 5), 0);
 
@@ -95,6 +98,7 @@ export default async function Reunion({ params }: { params: Promise<{ id: string
         </div>
         <div className="acciones">
           <Copiar texto={cerrada ? textoActa : textoPunteo}>{cerrada ? "Copiar acta para WhatsApp" : "Copiar punteo para WhatsApp"}</Copiar>
+          {!cerrada && yo.esCoord && <Copiar texto={textoConTiempos}>Copiar con tiempos (coordinación)</Copiar>}
           {yo.esCoord && r.estado === "preparacion" && estadoReunion("en_curso", "Empezar la reunión", "boton primario")}
           {puedeEditar && r.estado === "en_curso" && estadoReunion("cerrada", "Cerrar acta y publicar", "boton primario")}
           {yo.esCoord && cerrada && estadoReunion("en_curso", "Reabrir acta")}

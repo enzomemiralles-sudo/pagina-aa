@@ -9,7 +9,7 @@ import { BotonesSeguimiento } from "@/components/Seguimiento";
 import { Vence } from "@/components/TablaTareas";
 import { IconoCandado } from "@/components/Iconos";
 import { agregarTema, alPunteo, crearReunion } from "../acciones";
-import { horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
+import { encabezadoPunteo, horarios, textoPunteo as armarTextoPunteo } from "@/lib/punteo";
 
 function AlPunteo({ titulo, origen, proyectoId, ideaId }: { titulo?: string; origen?: string; proyectoId?: string | null; ideaId?: string }) {
   return (
@@ -76,9 +76,9 @@ export default async function Coordinacion() {
 
   const recordatorio = `Recordatorio: antes del martes a las 22 h, cada uno carga su actualización semanal. Son dos minutos: ${base}/actualizacion`;
   const responsables = await responsablesPosibles(supabase, personas);
-  const textoPunteo = reunion.data
-    ? armarTextoPunteo(`*Reunión de AA · ${fechaLarga(reunion.data.fecha)}*`, temas, personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable")
-    : "";
+  const responsableNombre = personas.find((p) => p.rol === "responsable")?.nombre.split(" ")[0] ?? "la responsable";
+  const textoPunteo = reunion.data ? armarTextoPunteo(encabezadoPunteo(reunion.data.fecha), temas, responsableNombre) : "";
+  const textoConTiempos = reunion.data ? armarTextoPunteo(encabezadoPunteo(reunion.data.fecha), temas, responsableNombre, { conTiempos: true }) : "";
   const horas = horarios(temas.map((t) => t.minutos));
 
   return (
@@ -267,6 +267,7 @@ export default async function Coordinacion() {
               </form>
               <Link href={`/reuniones/${reunion.data.id}/armar`} className="boton">Armar punteo sugerido</Link>
               <Copiar texto={textoPunteo} className="boton primario">Copiar para WhatsApp</Copiar>
+              <Copiar texto={textoConTiempos} className="boton">Copiar con tiempos</Copiar>
               <Link href={`/reuniones/${reunion.data.id}`} className="boton">Abrir la reunión</Link>
             </>
           ) : (
