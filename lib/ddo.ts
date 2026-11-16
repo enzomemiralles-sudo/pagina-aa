@@ -168,6 +168,20 @@ export function leerDdo(texto: string, ref: string, comision?: string): DdoLeido
   return r;
 }
 
+/** Primer ítem de los DDO de una semana que cumple `patron` desde `desde` (p. ej. la Reunión General). */
+export function buscarEnDdos(
+  filas: { comision: string; texto: string; semana: string }[],
+  patron: RegExp,
+  desde: string,
+): { fecha: string; texto: string } | null {
+  const hallados = filas
+    .flatMap((f) => leerDdo(f.texto, refDeSemana(f.semana), f.comision).dias)
+    .filter((d) => d.fecha >= desde)
+    .flatMap((d) => d.items.filter((i) => patron.test(i.texto)).map((i) => ({ fecha: d.fecha, texto: i.texto })))
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+  return hallados[0] ?? null;
+}
+
 /** Semana (lunes) de un DDO según las fechas de sus días; null si no trae días. */
 export function semanaDelDdo(texto: string, ref: string): string | null {
   const cuenta = new Map<string, number>();

@@ -57,13 +57,15 @@ export function armarBorrador(d: Datos): { temas: TemaSugerido[]; quedan: TemaSu
 
   const candidatos: TemaSugerido[] = [];
 
-  if (d.eventos.length) {
+  // La Reunión General nunca va al punteo: se da por confirmada y es después de la reunión de comisión.
+  const eventos = d.eventos.filter((e) => !/reuni[oó]n general/i.test(e.titulo));
+  if (eventos.length) {
     candidatos.push({
       clave: "operativas",
       titulo: TITULO_OPERATIVAS,
       origen: "Operativa",
-      puntos: d.eventos.map((e) => puntoEvento(e, hoy)),
-      minutos: Math.min(10, 2 + 3 * d.eventos.length),
+      puntos: eventos.map((e) => puntoEvento(e, hoy)),
+      minutos: Math.min(10, 2 + 3 * eventos.length),
       prioridad: 100,
     });
   }

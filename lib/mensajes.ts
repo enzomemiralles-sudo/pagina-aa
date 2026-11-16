@@ -1,3 +1,4 @@
+import { fechaDia } from "./fechas";
 // Mensajes modelo: se completan con los datos de la actividad o la reunión.
 // WhatsApp sigue siendo el canal: la página arma el texto y el link de WhatsApp de cada contacto (ver lib/contactos.ts).
 
@@ -53,4 +54,13 @@ export function completar(texto: string, d: DatosMensaje): string {
 /** "Visita a la Morgue Judicial" → "visita a la Morgue Judicial", para que entre en "Te confirmo para la {actividad}". */
 export function actividadEnFrase(nombre: string): string {
   return /^(visita|charla|jornada|presentaci[oó]n|actividad|taller|encuentro)\b/i.test(nombre) ? nombre.charAt(0).toLowerCase() + nombre.slice(1) : nombre;
+}
+
+/** La Reunión General no va en el punteo de AA (se da por confirmada y es después de la comisión), pero se recuerda fuerte en la convocatoria. */
+export const REUNION_GENERAL = /reuni[oó]n general/i;
+
+export function avisoReunionGeneral(cuando: { fecha: string; texto: string } | null): string {
+  const hora = cuando?.texto.match(/(\d{1,2}(?:[:.]\d{2})?)\s*hs/i)?.[1].replace(".", ":");
+  const detalle = cuando ? ` (${fechaDia(cuando.fecha)}${hora ? `, ${hora} hs` : ""})` : "";
+  return `⚠️ *IMPORTANTE: confirmá también tu asistencia a la Reunión General*${detalle}. No te la olvides.`;
 }

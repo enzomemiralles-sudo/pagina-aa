@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requerirAsistencia } from "@/lib/sesion";
 import { personasActivas } from "@/lib/datos";
-import { fechaDia, fechaLarga, hoyBA, semanaActual } from "@/lib/fechas";
-import { completar } from "@/lib/mensajes";
+import { fechaDia, fechaLarga, hoyBA, lunesDe, semanaActual } from "@/lib/fechas";
+import { avisoReunionGeneral, completar, REUNION_GENERAL } from "@/lib/mensajes";
+import { buscarEnDdos } from "@/lib/ddo";
 import { Copiar, Enviar } from "@/components/Cliente";
 import { ListaAsistencia, type FilaAsistencia } from "@/components/ListaAsistencia";
 import { agregarANomina, crearReunionSemana, editarNomina, guardarLogistica, sumarIntegrantesANomina } from "../acciones";
@@ -96,6 +97,10 @@ export default async function Columna({ searchParams }: { searchParams: Promise<
   const insistir = filas.filter((f) => f.insistir);
   const datos = { dia: fechaDia(reunion.fecha), hora: reunion.hora, aula: logistica?.aula ?? null };
   const convocatoria = mensajes.find((m) => /convocatoria/i.test(m.titulo)) ?? mensajes[0];
+  // Aviso fuerte de la Reunión General: el día y la hora salen de los DDO de la semana (los ve coordinación).
+  const ddoR = await supabase.from("ddo").select("comision, texto, semana").eq("semana", lunesDe(reunion.fecha));
+  const general = buscarEnDdos((ddoR.data ?? []) as { comision: string; texto: string; semana: string }[], REUNION_GENERAL, reunion.fecha);
+  const textoConvocatoria = convocatoria ? `${completar(convocatoria.texto, datos)}\n\n${avisoReunionGeneral(general)}` : "";
   const insistencia = mensajes.find((m) => /insistir/i.test(m.titulo));
   const busca = nomina.find((n) => n.id === logistica?.busca_aula_id);
   const esHoy = reunion.fecha === hoy;
@@ -164,8 +169,8 @@ export default async function Columna({ searchParams }: { searchParams: Promise<
           {convocatoria && (
             <section className="tarjeta" aria-labelledby="conv-t">
               <h2 id="conv-t">Mensaje para el grupo</h2>
-              <p className="texto-largo chico mensaje">{completar(convocatoria.texto, datos)}</p>
-              <Copiar texto={completar(convocatoria.texto, datos)}>Copiar para WhatsApp</Copiar>
+              <p className="texto-largo chico mensaje">{textoConvocatoria}</p>
+              <Copiar texto={textoConvocatoria}>Copiar para WhatsApp</Copiar>
             </section>
           )}
 

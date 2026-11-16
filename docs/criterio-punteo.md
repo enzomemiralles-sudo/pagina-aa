@@ -24,17 +24,15 @@ Cada regla lleva la reunión de la que salió.
   - Si son de esa semana: "¿Quiénes están?". Se cuenta quién va; la logística ("cómo vamos") no se trata en la reunión.
   - Si son más adelante: "Confirmar con tiempo.". Por eso entran las de hasta un mes (`DIAS_EVENTOS`).
 - **Cierre del año** (18/11): "Repasar fecha y confirmación". Es una fecha que hay que confirmar, no la última reunión.
+- **La Reunión General nunca va en el punteo** (Enzo, 16/11): se entiende que ya confirmaste y es después de la reunión de comisión.
+  - En cambio, se recuerda fuerte en la convocatoria de Columna al grupo de la comisión: "⚠️ IMPORTANTE: confirmá también tu asistencia a la Reunión General". El día y la hora salen de los DDO de la semana (`avisoReunionGeneral`).
+- **Lo que depende de fechas que todavía no están, espera** (Enzo, 16/11): el contacto de inscriptos se trata cuando ya están las fechas de la charla y la visita. Antes no entra, aunque haya quedado de la reunión anterior.
+- **Lo que coordinación cierra en privado no va a la reunión** (Enzo, 16/11): por ejemplo, la actividad con Nati Salvo, que Enzo va cerrando con Sofi por privado. Después se decide cómo bajarlo a la reunión.
+  - En la página serían temas "solo coordinación": no salen en el punteo para el grupo ni en el acta, y solo los ve coordinación. Está pendiente la migración `2026-11-16_temas_solo_coordinacion.sql`, que necesita la confirmación de Enzo para aplicarse.
 
 ## Preguntas abiertas
 
-Diferencias que todavía no tienen regla:
-
-- 18/11: Enzo sacó de la versión para Sofi tres cosas del borrador:
-  - la Reunión General ("hoy, 20 hs");
-  - el contacto de inscriptos, que había quedado de la reunión anterior;
-  - la actividad con Nati Salvo (27/11, a confirmar).
-  
-  ¿Por qué? Cuando lo diga, va acá como regla.
+Ninguna por ahora.
 
 ## Registro por reunión
 
@@ -96,9 +94,9 @@ La numeración salteada (5, 7) es de la edición del borrador, no un criterio. L
 | Sin línea de horarios ni tiempos por tema | Versión para Sofi sin tiempos |
 | "Operativas y fechas de la agrupación" pasa a "Operativas y fechas" | Título corto |
 | "¿Quiénes van y cómo vamos?" pasa a "¿Quiénes están? (por si alguno más se suma)" | Fechas de la semana: contar quién va |
-| Saca "Reunión General: hoy, 20 hs" | Pregunta abierta |
-| Saca "Contacto de inscriptos" | Pregunta abierta |
-| Saca "Actividad con Nati Salvo" | Pregunta abierta |
+| Saca "Reunión General: hoy, 20 hs" | Nunca va: se da por confirmada y es después de la comisión |
+| Saca "Contacto de inscriptos" | Espera a que estén las fechas de charla y visita |
+| Saca "Actividad con Nati Salvo" | Se cierra en privado con Sofi: solo coordinación |
 | "¿Quién se encarga?" pasa a "Pensar" (comunicación) | Una sola vez: todavía no es regla |
 | "Cómo seguimos coordinando hasta el 4/12" pasa a "Repasar fecha y confirmación" | El cierre del año es una fecha a confirmar |
 
