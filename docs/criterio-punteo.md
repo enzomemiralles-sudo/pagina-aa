@@ -100,4 +100,9 @@ La numeración salteada (5, 7) es de la edición del borrador, no un criterio. L
 | "¿Quién se encarga?" pasa a "Pensar" (comunicación) | Una sola vez: todavía no es regla |
 | "Cómo seguimos coordinando hasta el 4/12" pasa a "Repasar fecha y confirmación" | El cierre del año es una fecha a confirmar |
 
+**Agregados de Enzo (17/11), antes de mandarlo**, en el tema del ciclo:
+- La visita ya tiene fecha: "Visita al Museo de la Policía Federal Argentina: jueves 26/11, 15 hs. Cuenta Iara E." Cuando hay fecha confirmada, el punto lleva el día, la hora y quién la cuenta.
+- "Charla virtual…: esperando confirmación del docente Zurzolo (penal)". Lo pendiente se dice con quién se está esperando.
+- "Comunicación: salimos con una publicación. ¿Quién piensa el contenido y la descripción y la carga al Forms?" Lo que necesita a alguien va como pregunta abierta para que alguien lo tome.
+
 **Versión de Sofi**: pendiente.
